@@ -32,6 +32,8 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+.env
+postgres_data/
 
 # Symbolication related
 app.*.symbols
