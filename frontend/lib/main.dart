@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/features/auth/screens/auth_email.dart';
 
 void main() {
   runApp(const DangretelApp());
@@ -37,6 +38,18 @@ class HomePage extends StatelessWidget {
           '성공적으로 실행되었습니다. HI~~',
           style: TextStyle(fontSize: 18),
         ),
+      ),
+      //[테스트용] email_auth 화면으로 이동하는 버튼
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: FloatingActionButton.small(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const AuthEmailScreen(),
+            ),
+          );
+        },
+        child: const Icon(Icons.keyboard_arrow_up_rounded),
       ),
     );
   }
