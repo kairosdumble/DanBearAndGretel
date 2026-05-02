@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-//import 'tmap_view.dart';
+import 'tmap_view.dart';
 
 void main() {
   runApp(const DangretelApp());
@@ -30,64 +30,24 @@ class HomePage extends StatelessWidget {
     return Scaffold(
 body: Stack(
 
-        children: [
-
-          // 지도 영역
-
+        children: [ // 지도 영역
           Positioned(
-
             top: 60, // 상태바 아래 적절한 여백
-
             left: 20,
-
             right: 20,
-
             child: Container(
-
               height: 350, // 네모 상자의 높이 설정
-
               decoration: BoxDecoration(
-
                 color: const Color(0xFFF2F2F2), // 지도 배경색
-
                 borderRadius: BorderRadius.circular(15), // 모서리를 살짝 둥글게
-
                 border: Border.all(color: const Color(0xFFE0E0E0)), // 테두리 추가
-
               ),
-
-              child: ClipRRect(
-
-                borderRadius: BorderRadius.circular(15),
-
-                child: Column(
-
-                  mainAxisAlignment: MainAxisAlignment.center,
-
-                  children: const [
-
-                    Icon(Icons.map_outlined, size: 40, color: Colors.grey),
-
-                    SizedBox(height: 10),
-
-                    Text(
-
-                      '이 네모 상자에 지도가 표시됩니다',
-
-                      style: TextStyle(color: Colors.grey),
-
-                    ),
-
-                  ],
-
-                ),
-
-              ),
-
+  child: ClipRRect(
+  borderRadius: BorderRadius.circular(15),
+  child: const TMapView(), // <--- 이 부분이 핵심! 기존 Column(...)을 지우고 이걸 넣으세요.
+),
             ),
-
           ),
-
           // 하단 UI 패널
           Positioned(
             bottom: 0,
