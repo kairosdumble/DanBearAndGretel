@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # DanBearAndGretel
 [2026-1 캡스톤 프로젝트] 택시 공동 탑승 어플
 =======
@@ -36,4 +35,4 @@ backend부터 실행(서버 구동)
 웹으로 보기
 - flutter run 입력
 
->>>>>>> 8e65d7d (init setting)
+api 키는 frontend/lib/tmap_view.dart에서 7줄   _tMapApiKey변수로 들어가 있습니다.
