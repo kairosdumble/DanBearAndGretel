@@ -15,7 +15,9 @@ class TMapView extends StatefulWidget {
 
 class _TMapViewState extends State<TMapView> {
   bool _isInitializing = true;
+  bool _isRefreshing = false;
   bool _isReady = false;
+  bool _isSdkInitialized = false;
   String _statusMessage = 'Preparing T map...';
   Position? _currentPosition;
 
@@ -32,6 +34,29 @@ class _TMapViewState extends State<TMapView> {
   void initState() {
     super.initState();
     _initialize();
+  }
+
+  Future<void> _refreshMap() async {
+    if (_isInitializing || _isRefreshing) {
+      return;
+    }
+
+    setState(() {
+      _isRefreshing = true;
+      _statusMessage = 'Refreshing map...';
+    });
+
+    try {
+      await _loadCurrentPosition();
+    } finally {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isRefreshing = false;
+      });
+    }
   }
 
   Future<void> _initialize() async {
@@ -63,23 +88,15 @@ class _TMapViewState extends State<TMapView> {
         return;
       }
 
-      final currentPosition = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      await _loadCurrentPosition();
 
-      if (!mounted) {
+      if (_isSdkInitialized) {
         return;
       }
 
       setState(() {
-        _currentPosition = currentPosition;
-        _statusMessage =
-            'GPS ready: ${currentPosition.latitude}, ${currentPosition.longitude}';
-      });
-
-      setState(() {
+        _isInitializing = true;
+        _isReady = false;
         _statusMessage = 'Initializing T map SDK...';
       });
 
@@ -96,6 +113,7 @@ class _TMapViewState extends State<TMapView> {
 
       if (result == InitResult.granted) {
         setState(() {
+          _isSdkInitialized = true;
           _isInitializing = false;
           _isReady = true;
           _statusMessage = 'T map ready';
@@ -117,6 +135,26 @@ class _TMapViewState extends State<TMapView> {
         _statusMessage = 'T map error: $error';
       });
     }
+  }
+
+  Future<void> _loadCurrentPosition() async {
+    final currentPosition = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _currentPosition = currentPosition;
+      _isInitializing = false;
+      _isReady = _isSdkInitialized;
+      _statusMessage =
+          'GPS ready: ${currentPosition.latitude}, ${currentPosition.longitude}';
+    });
   }
 
   @override
@@ -164,6 +202,48 @@ class _TMapViewState extends State<TMapView> {
               PlanningOption.recommend,
             ],
             guideWithoutPreview: false,
+          ),
+        ),
+        Positioned(
+          top: 12,
+          right: 12,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isRefreshing ? null : _refreshMap,
+              borderRadius: BorderRadius.circular(8),
+              child: Ink(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFD1D5DB),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: _isRefreshing
+                    ? const Padding(
+                        padding: EdgeInsets.all(9),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF1F2937),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.refresh,
+                        size: 18,
+                        color: Color(0xFF1F2937),
+                      ),
+              ),
+            ),
           ),
         ),
         if (_currentPosition != null)
