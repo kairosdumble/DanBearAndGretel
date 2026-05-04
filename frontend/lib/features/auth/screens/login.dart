@@ -17,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // 로그인 통신 함수
   Future<void> _handleLogin() async {
-    final url = Uri.parse('http://localhost:3000/api/auth/login');
+    final url = Uri.parse('http://localhost:3000/auth/login');
     try {
       final response = await http.post(
         url,
@@ -41,6 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       print("Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("서버 통신 중 오류가 발생했습니다.")),
+      );
     }
   }
 
@@ -57,7 +60,6 @@ class _LoginScreenState extends State<LoginScreen> {
             const Text("이메일", style: TextStyle(fontWeight: FontWeight.bold)),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(hintText: "1234@dankook.ac.kr"),
             ),
             const SizedBox(height: 30),
 
@@ -66,7 +68,6 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _passwordController,
               obscureText: true,
               decoration: const InputDecoration(
-                hintText: "••••••••••••",
                 suffixIcon: Icon(Icons.visibility_off_outlined),
               ),
             ),
@@ -85,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: const Text("Continue", style: TextStyle(color: Colors.white, fontSize: 16)),
               ),
-            ),
+            ),            
           ],
         ),
       ),
