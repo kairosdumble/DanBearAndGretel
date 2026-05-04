@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'auth_header.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -53,25 +54,6 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 20),
-            // 상단 탭 (로그인/회원가입 선택 바)
-            Row(
-              children: [
-                Column(
-                  children: [
-                    const Text("로그인", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF3F51B5))),
-                    Container(height: 2, width: 60, color: const Color(0xFF3F51B5)),
-                  ],
-                ),
-                const SizedBox(width: 30),
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/signup'), // 회원가입으로 이동
-                  child: const Text("회원가입", style: TextStyle(fontSize: 18, color: Colors.grey)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 50),
-
             const Text("이메일", style: TextStyle(fontWeight: FontWeight.bold)),
             TextField(
               controller: _emailController,
@@ -88,14 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 suffixIcon: Icon(Icons.visibility_off_outlined),
               ),
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {}, 
-                child: const Text("비밀번호를 잊으셨나요?", style: TextStyle(fontSize: 12, color: Color(0xFF3F51B5))),
-              ),
-            ),
-            const SizedBox(height: 40),
+
+            SizedBox(height: 100),
 
             // Continue 버튼
             SizedBox(

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // 서버 통신을 위해 필요
 import 'dart:convert';
+import 'auth_header.dart';
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -95,7 +96,7 @@ class _SignupScreenState extends State<SignupScreen> {
               decoration: InputDecoration(hintText: "••••••••••••", suffixIcon: Icon(Icons.visibility_off)),
             ),
             
-            SizedBox(height: 100), // 여백
+            SizedBox(height: 100),
 
             // 완료 버튼
             SizedBox(
