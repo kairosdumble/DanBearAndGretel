@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import 'place.dart';
+import 'place_search_page.dart';
 import 'tmap_view.dart';
 
 void main() {
@@ -11,7 +14,7 @@ class DangretelApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '단곰이와 그레텔',
+      title: 'Dangretel',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3056A0)),
@@ -22,39 +25,72 @@ class DangretelApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-body: Stack(
+  State<HomePage> createState() => _HomePageState();
+}
 
-        children: [ // 지도 영역
+class _HomePageState extends State<HomePage> {
+  Place? _departure;
+  Place? _destination;
+
+  Future<void> _openSearch(PlaceSearchType type) async {
+    final place = await Navigator.of(context).push<Place>(
+      MaterialPageRoute(
+        builder: (_) => PlaceSearchPage(type: type),
+      ),
+    );
+
+    if (!mounted || place == null) {
+      return;
+    }
+
+    setState(() {
+      if (type == PlaceSearchType.departure) {
+        _departure = place;
+      } else {
+        _destination = place;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canFindMate = _departure != null && _destination != null;
+
+    return Scaffold(
+      body: Stack(
+        children: [
           Positioned(
-            top: 60, // 상태바 아래 적절한 여백
+            top: 60,
             left: 20,
             right: 20,
             child: Container(
-              height: 350, // 네모 상자의 높이 설정
+              height: 350,
               decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F2), // 지도 배경색
-                borderRadius: BorderRadius.circular(15), // 모서리를 살짝 둥글게
-                border: Border.all(color: const Color(0xFFE0E0E0)), // 테두리 추가
+                color: const Color(0xFFF2F2F2),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
               ),
-  child: ClipRRect(
-  borderRadius: BorderRadius.circular(15),
-  child: const TMapView(), // <--- 이 부분이 핵심! 기존 Column(...)을 지우고 이걸 넣으세요.
-),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: const TMapView(),
+              ),
             ),
           ),
-          // 하단 UI 패널
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: Container(
-              padding: const EdgeInsets.only(left: 24, right: 24, top: 32, bottom: 40),
+              padding: const EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 32,
+                bottom: 40,
+              ),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.only(
@@ -71,85 +107,83 @@ body: Stack(
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min, // 내용물 크기만큼만 높이 차지
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 출발지 설정, 이전내역 버튼
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         '출발지 설정',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       SizedBox(
                         height: 32,
                         child: ElevatedButton(
-                          onPressed: () {
-                            // 이전 내역 페이지나 모달 띄우기
-                            print('이전 내역 버튼 클릭');
-                          },
+                          onPressed: () {},
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE0E0E0), // 회색 배경
-                            foregroundColor: Colors.black, // 글자색
+                            backgroundColor: const Color(0xFFE0E0E0),
+                            foregroundColor: Colors.black,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(5),
                             ),
                           ),
-                          child: const Text('이전내역', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            '이전내역',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-
-                  // 출발지 검색 박스 (버튼)
                   _buildSearchBoxButton(
-                    context: context,
-                    onTap: () {
-                      // 출발지 검색 페이지로 이동
-                      print('출발지 검색 페이지로 이동');
-                    },
+                    label: _departure?.name ?? '출발지를 검색하세요',
+                    subtitle: _departure?.roadAddress,
+                    onTap: () => _openSearch(PlaceSearchType.departure),
                   ),
                   const SizedBox(height: 30),
-
-                  // 목적지 설정
                   const Text(
                     '목적지 설정',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
-
-                  // 목적지 검색 박스 (버튼)
                   _buildSearchBoxButton(
-                    context: context,
-                    onTap: () {
-                      // 목적지 검색 페이지로 이동
-                      print('목적지 검색 페이지로 이동');
-                    },
+                    label: _destination?.name ?? '목적지를 검색하세요',
+                    subtitle: _destination?.roadAddress,
+                    onTap: () => _openSearch(PlaceSearchType.destination),
                   ),
                   const SizedBox(height: 30),
-
-                  // 동승자 찾기 버튼
                   SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // 동승자 찾는 다음 페이지로 이동
-                        print('동승자 찾기 페이지로 이동');
-                      },
+                      onPressed: canFindMate ? () {} : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3056A0),
+                        disabledBackgroundColor: const Color(0xFFB9C6E2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        '동승자 찾기',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      child: Text(
+                        canFindMate ? '동승자 찾기' : '출발지와 목적지를 선택하세요',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -162,23 +196,64 @@ body: Stack(
     );
   }
 
-  // 검색 박스 모양의 버튼을 만드는 공통 위젯 함수
-  Widget _buildSearchBoxButton({required BuildContext context, required VoidCallback onTap}) {
+  Widget _buildSearchBoxButton({
+    required String label,
+    required VoidCallback onTap,
+    String? subtitle,
+  }) {
+    final hasSelection = subtitle != null;
+
     return InkWell(
-      onTap: onTap, // 클릭 시 실행될 함수 연결
+      onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        height: 50,
+        height: hasSelection ? 66 : 50,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: const Color(0xFFD4D4D4), width: 1.5), // 테두리 색상
+          border: Border.all(
+            color: const Color(0xFFD4D4D4),
+            width: 1.5,
+          ),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.end, // 아이콘을 오른쪽 끝으로 배치
+        child: Row(
           children: [
-            Icon(Icons.search, color: Color(0xFF3056A0)), // 파란색 돋보기 아이콘
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight:
+                          hasSelection ? FontWeight.w700 : FontWeight.w500,
+                      color: hasSelection
+                          ? const Color(0xFF1F2937)
+                          : const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Icon(Icons.search, color: Color(0xFF3056A0)),
           ],
         ),
       ),

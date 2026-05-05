@@ -4,7 +4,7 @@ import 'package:flutter_navi_sdk/flutter_navi_sdk.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-const _tMapApiKey = 'TXChrUJFjq9O4TdlVdE5U5s9GI3f8Wlt6kHC4kAP';
+const _tMapApiKey = 'TXChrUJFjq9O4TdlVdE5U5s9GI3f8Wlt6kHC4kAP'; //키
 
 class TMapView extends StatefulWidget {
   const TMapView({super.key});
@@ -187,21 +187,17 @@ class _TMapViewState extends State<TMapView> {
     return Stack(
       children: [
         TmapViewWidget(
+          key: ValueKey<String>(
+            _currentPosition == null
+                ? 'tmap-loading'
+                : '${_currentPosition!.latitude.toStringAsFixed(6)},${_currentPosition!.longitude.toStringAsFixed(6)}',
+          ),
           data: RouteRequestData(
             source: RoutePoint(
               latitude: _currentPosition!.latitude,
               longitude: _currentPosition!.longitude,
               name: 'Current Location',
             ),
-            destination: RoutePoint(
-              latitude: _currentPosition!.latitude + 0.01,
-              longitude: _currentPosition!.longitude + 0.01,
-              name: 'Nearby Destination',
-            ),
-            routeOption: [
-              PlanningOption.recommend,
-            ],
-            guideWithoutPreview: false,
           ),
         ),
         Positioned(
