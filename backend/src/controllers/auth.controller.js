@@ -1,6 +1,7 @@
 const verificationService = require("../services/emailVerification.service");
 
-async function sendCode(req, res) {
+// 이메일 전송 컨트롤러
+async function sendCode(req, res) { // req: 요청 객체, res:응답 객체
   try {
     const { email } = req.body;
     const result = await verificationService.sendCode(email);
@@ -10,6 +11,7 @@ async function sendCode(req, res) {
   }
 }
 
+//이메일 인증 코드 검증 컨트롤러
 async function verifyCode(req, res) {
   try {
     const { email, code } = req.body;

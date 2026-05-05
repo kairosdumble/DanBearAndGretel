@@ -17,7 +17,7 @@ backend부터 실행(서버 구동)
 - flutter run 입력
 
 
-# 파일 구조
+# 파일 구조 (frontend/lib)
 ├── main.dart                # 앱의 시작점
 ├── app.dart                 # 전체적인 테마, 라우팅 설정
 ├── core/                    # 앱 전반에 공통으로 쓰이는 것들

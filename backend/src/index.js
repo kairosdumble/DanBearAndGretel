@@ -1,15 +1,21 @@
+// 서버 진입점입니다. Express 서버를 설정하고 PostgreSQL 데이터베이스와 연결합니다.
 require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
 const authRoutes = require("./routes/auth.routes");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 const databaseUrl = process.env.DATABASE_URL;
 
-
+const authLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5분
+  max: 10, // 5분에 10회
+  message: { message: "요청이 너무 많습니다. 잠시 후 다시 시도하세요." },
+});
 
 if (!databaseUrl) {
   throw new Error("DATABASE_URL 환경변수가 설정되지 않았습니다.");
@@ -22,6 +28,7 @@ const pool = new Pool({
 app.use(cors());
 app.use(express.json());
 app.use("/auth", authRoutes);
+app.use("/auth/email", authLimiter);
 
 app.get("/health", async (_req, res) => {
   try {

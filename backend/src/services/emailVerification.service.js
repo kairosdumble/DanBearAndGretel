@@ -1,10 +1,10 @@
-const crypto = require("crypto");
-const pool = require("../db/pool");
+const crypto = require("crypto"); // 암호화 도구
+const pool = require("../db/pool"); // 데이터베이스 연결 풀
 const { sendVerificationEmail } = require("../utils/mail");
 
 const CODE_TTL_MINUTES = Number(process.env.VERIFICATION_CODE_TTL_MINUTES || 5);
 const MAX_ATTEMPTS = Number(process.env.VERIFICATION_MAX_ATTEMPTS || 3);
-const ALLOWED_DOMAIN = "@dankook.ac.kr";
+const ALLOWED_DOMAIN = "@dankook.ac.kr"; // 우리 학교 학생만 인증 가능하도록 도메인 제한
 
 function isAllowedSchoolEmail(email) {
   return typeof email === "string" && email.toLowerCase().endsWith(ALLOWED_DOMAIN);
@@ -19,12 +19,14 @@ function hashCode(code) {
 }
 
 async function sendCode(email) {
+  // 학교 이메일 형식인지 확인
   if (!isAllowedSchoolEmail(email)) {
     const err = new Error("학교 이메일(@dankook.ac.kr)만 가능합니다.");
-    err.status = 400;
+    err.status = 400; // 에러 발생 시
     throw err;
   }
 
+  // 6자리 인증 코드 생성 및 해싱
   const code = generateSixDigitCode();
   const codeHash = hashCode(code);
 
@@ -82,6 +84,7 @@ async function verifyCode(email, code) {
     throw err;
   }
 
+  // 입력된 코드와 해시된 코드 비교
   const isMatch = hashCode(code) === row.code_hash;
   if (!isMatch) {
     const nextAttempt = row.attempt_count + 1;

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/features/auth/screens/auth_email.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // .env 파일 로드용
 
-void main() {
+void main() async {
+  await dotenv.load(fileName: ".env");
   runApp(const DangretelApp());
 }
 
@@ -45,7 +47,7 @@ class HomePage extends StatelessWidget {
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const AuthEmailScreen(),
+              builder: (_) => AuthEmailScreen(email: "yir1125@dankook.ac.kr"),
             ),
           );
         },
