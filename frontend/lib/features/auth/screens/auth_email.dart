@@ -16,7 +16,7 @@ class _AuthEmailScreenState extends State<AuthEmailScreen> {
     String _enteredCode = '';
 
     Future<void> _verifyCode() async {
-      final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
+      final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:10000';
       final response = await http.post(
         Uri.parse('$baseUrl/auth/email/verify-code'),
         headers: {'Content-Type': 'application/json'},
@@ -51,11 +51,13 @@ class _AuthEmailScreenState extends State<AuthEmailScreen> {
           const SnackBar(content: Text('인증코드가 이메일로 전송되었습니다.')),
         );
       } else {
+        print("서버 응답 에러: ${response.body}"); 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('인증코드 전송에 실패했습니다.')), 
+          SnackBar(content: Text('인증코드 전송에 실패했습니다. 에러코드: ${response.statusCode} 실패 사유: ${response.body}')),
         );
       }
     } catch (e) {
+      print("네트워크 오류: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('네트워크 오류로 인증코드 전송에 실패했습니다.')), 
       );

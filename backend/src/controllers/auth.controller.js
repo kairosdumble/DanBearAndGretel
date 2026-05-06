@@ -7,6 +7,7 @@ async function sendCode(req, res) { // req: 요청 객체, res:응답 객체
     const result = await verificationService.sendCode(email);
     res.status(200).json(result);
   } catch (error) {
+    console.error("sendCode 에러 발생:", error); 
     res.status(error.status || 500).json({ message: error.message });
   }
 }
@@ -18,6 +19,7 @@ async function verifyCode(req, res) {
     const result = await verificationService.verifyCode(email, code);
     res.status(200).json(result);
   } catch (error) {
+    console.error("verifyCode 에러 발생:", error);
     res.status(error.status || 500).json({ message: error.message });
   }
 }
