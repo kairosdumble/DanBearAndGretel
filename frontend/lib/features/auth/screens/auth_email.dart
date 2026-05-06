@@ -18,7 +18,7 @@ class _AuthEmailScreenState extends State<AuthEmailScreen> {
     Future<void> _verifyCode() async {
       final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
       final response = await http.post(
-        Uri.parse('$baseUrl/email/verify-code'),
+        Uri.parse('$baseUrl/auth/email/verify-code'),
         headers: {'Content-Type': 'application/json'},
         body: '{"email": "${widget.email}", "code": "$_enteredCode"}',
       );
@@ -42,7 +42,7 @@ class _AuthEmailScreenState extends State<AuthEmailScreen> {
     final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/email/send-code'),
+        Uri.parse('$baseUrl/auth/email/send-code'),
         headers: {'Content-Type': 'application/json'},
         body: '{"email": "${widget.email}"}',
       );

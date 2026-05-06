@@ -3,7 +3,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const { Pool } = require("pg");
+const pool = require("./db/pool");
 const authRoutes = require("./routes/auth.routes");
 const rateLimit = require("express-rate-limit");
 
@@ -20,10 +20,6 @@ const authLimiter = rateLimit({
 if (!databaseUrl) {
   throw new Error("DATABASE_URL 환경변수가 설정되지 않았습니다.");
 }
-
-const pool = new Pool({
-  connectionString: databaseUrl,
-});
 
 app.use(cors());
 app.use(express.json());
