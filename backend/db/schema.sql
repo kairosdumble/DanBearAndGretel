@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS email_verifications(
+CREATE TABLE IF NOT EXISTS email_verifications(
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL,
   code_hash VARCHAR(64) NOT NULL, -- 인증번호 해시값
