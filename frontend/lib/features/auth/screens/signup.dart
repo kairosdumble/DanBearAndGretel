@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // 서버 통신을 위해 필요
 import 'dart:convert';
 import 'auth_header.dart';
+import 'package:frontend/features/auth/screens/auth_email.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // .env 파일 로드용
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -16,39 +18,13 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // 2. 이메일 인증번호 발송 함수 (send-code 호출)
-  Future<void> _sendVerificationCode() async {
-    final url = Uri.parse('http://localhost:3000/auth/email/send-code');
-    try {
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({"email": _emailController.text}),
-      );
-      final result = json.decode(response.body);
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? "인증번호 발송 성공")),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? "인증번호 발송에 실패했습니다.")),
-        );
-      }
-    } catch (e) {
-      print("에러 발생: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("서버 통신 중 오류가 발생했습니다.")),
-      );
-    }
-  }
 
-  // 3. 최종 회원가입 함수 (signup 호출)
+  // 최종 회원가입 함수 (signup 호출)
   Future<void> _submitSignup() async {
-    final url = Uri.parse('http://localhost:3000/auth/signup');
+    final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:10000';
     try {
       final response = await http.post(
-        url,
+        Uri.parse('$baseUrl/signup'),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "student_id": _studentIdController.text,
@@ -107,7 +83,13 @@ class _SignupScreenState extends State<SignupScreen> {
                   child: TextField(controller: _emailController),
                 ),
                 ElevatedButton(
-                  onPressed: _sendVerificationCode, // [인증하기] 버튼
+                  onPressed: () {
+                  Navigator.of(context).push(
+                  MaterialPageRoute(
+                  builder: (_) => AuthEmailScreen(email: "yir1125@dankook.ac.kr"),
+            ),
+          );
+        },
                   child: Text("인증하기"),
                 ),
               ],
@@ -130,7 +112,10 @@ class _SignupScreenState extends State<SignupScreen> {
               height: 50,
               child: ElevatedButton(
                 onPressed: _submitSignup, // [완료] 버튼
-                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF3F51B5)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF3F51B5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
                 child: Text("완료", style: TextStyle(color: Colors.white, fontSize: 18)),
               ),
             ),

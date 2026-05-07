@@ -84,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   backgroundColor: const Color(0xFF3F51B5),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text("Continue", style: TextStyle(color: Colors.white, fontSize: 16)),
+                child: const Text("로그인", style: TextStyle(color: Colors.white, fontSize: 16)),
               ),
             ),            
           ],
