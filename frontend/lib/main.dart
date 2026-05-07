@@ -43,7 +43,7 @@ class HomePage extends StatelessWidget {
   }
 }
 */
-
+/*
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -120,6 +120,38 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+    );
+  }
+}
+*/
+import 'package:flutter/material.dart';
+
+import 'package:frontend/features/ride/screens/companion_list_screen.dart'; 
+
+void main() {
+  runApp(const DangretelApp());
+}
+
+class DangretelApp extends StatelessWidget {
+  const DangretelApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '단곰이와 그레텔',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: const Color(0xFF3F51B5),
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      
+      home: const CompanionListScreen(), 
+      
+      // 나중에 다른 화면들과 연결할 때 사용할 라우트들
+      routes: {
+        '/companion_list': (context) => const CompanionListScreen(),
+        // '/login': (context) => const AuthHeaderPage(), // 기존 코드들
+      },
     );
   }
 }
