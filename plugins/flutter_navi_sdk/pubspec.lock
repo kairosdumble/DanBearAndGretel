@@ -304,11 +304,9 @@ packages:
   tmap_ui_sdk:
     dependency: "direct main"
     description:
-      path: "."
-      ref: "1.0.59"
-      resolved-ref: d640d470346daaa616d01e526672504e695e7bff
-      url: "http://github.com/TmapSDK/TmapUI_FlutterSDK.git"
-    source: git
+      path: "../tmap_ui_sdk"
+      relative: true
+    source: path
     version: "1.0.59"
   vector_math:
     dependency: transitive

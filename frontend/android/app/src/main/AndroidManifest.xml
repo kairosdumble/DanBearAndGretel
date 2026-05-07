@@ -7,14 +7,11 @@
         android:label="frontend"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-<<<<<<< HEAD
-        android:usesCleartextTraffic="true">
-=======
+        android:usesCleartextTraffic="true"
         tools:replace="android:label">
         <meta-data
             android:name="com.tmap.apikey"
             android:value="TXChrUJFjq9O4TdlVdE5U5s9GI3f8Wlt6kHC4kAP" />
->>>>>>> origin/seunga
         <activity
             android:name=".MainActivity"
             android:exported="true"

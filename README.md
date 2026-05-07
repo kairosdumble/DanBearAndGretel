@@ -40,4 +40,4 @@ API Key: frontend/lib/tmap_view.dart에서 7줄(_tMapApiKey)에 선언.
     └── providers/           # 상태 관리 (Provider, Riverpod 등)
 
 screens: 화면 스크린 UI 
-widgets: 재사용성이 높은 위젯들을 따로 정리, 또는 screens 코드가 너무 길어지면 위젯을 분리해서 여기에 선언언
+widgets: 재사용성이 높은 위젯들을 따로 정리, 또는 screens 코드가 너무 길어지면 위젯을 분리해서 여기에 선언

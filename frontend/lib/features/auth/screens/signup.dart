@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // 서버 통신을 위해 필요
 import 'dart:convert';
-import 'auth_header.dart';
 import 'package:frontend/features/auth/screens/auth_email.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // .env 파일 로드용
 
@@ -84,12 +83,12 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                  Navigator.of(context).push(
-                  MaterialPageRoute(
-                  builder: (_) => AuthEmailScreen(email: "yir1125@dankook.ac.kr"),
-            ),
-          );
-        },
+                    Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AuthEmailScreen(email: "yir1125@dankook.ac.kr"),
+                      ),
+                    );
+                  },
                   child: Text("인증하기"),
                 ),
               ],
