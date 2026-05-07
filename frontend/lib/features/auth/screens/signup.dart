@@ -20,7 +20,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   // 최종 회원가입 함수 (signup 호출)
   Future<void> _submitSignup() async {
-    final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:10000';
+    final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/signup'),

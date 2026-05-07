@@ -1,3 +1,4 @@
+//DB 연결을 위한 pool 설정 파일
 const { Pool } = require("pg");
 
 const databaseUrl = process.env.DATABASE_URL;

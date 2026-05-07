@@ -16,7 +16,7 @@ class _AuthEmailScreenState extends State<AuthEmailScreen> {
     String _enteredCode = '';
 
     Future<void> _verifyCode() async {
-      final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:10000';
+      final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
       final response = await http.post(
         Uri.parse('$baseUrl/auth/email/verify-code'),
         headers: {'Content-Type': 'application/json'},
