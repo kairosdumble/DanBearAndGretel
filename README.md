@@ -16,6 +16,8 @@ backend부터 실행(서버 구동)
 웹으로 보기
 - flutter run 입력
 
+API Key: frontend/lib/tmap_view.dart에서 7줄(_tMapApiKey)에 선언.
+
 
 # 파일 구조 (frontend/lib)
 ├── main.dart                # 앱의 시작점
