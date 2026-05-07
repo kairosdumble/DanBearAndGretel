@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'place.dart';
-import 'place_search_page.dart';
+import '../../routeSearch/screens/place_search_page.dart';
 import 'tmap_view.dart';
 
 class HomePage extends StatefulWidget {

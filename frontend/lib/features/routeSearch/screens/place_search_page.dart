@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'place.dart';
+import '../../home/screens/place.dart';
 
 enum PlaceSearchType { departure, destination }
 
