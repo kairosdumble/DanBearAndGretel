@@ -24,8 +24,7 @@ class DriveRouteData {
       PlanningOption.generalRoad,
     ];
 
-    RoutePoint start =
-        RoutePoint(latitude: 37.564995, longitude: 126.987065, name: "TMOBI");
+    RoutePoint start = RoutePoint(latitude: 37.564995, longitude: 126.987065, name: "TMOBI");
 
     RoutePoint dest = RoutePoint(
         latitude: 36.479709, longitude: 127.289804, name: "세종특별자치의회");
