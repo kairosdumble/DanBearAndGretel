@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'auth_header.dart';
+import 'package:frontend/features/home/screens/home.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -79,12 +79,19 @@ class _LoginScreenState extends State<LoginScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: _handleLogin,
+                onPressed: () {
+                  _handleLogin();
+                  Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => HomePage(),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF3F51B5),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text("Continue", style: TextStyle(color: Colors.white, fontSize: 16)),
+                child: const Text("로그인", style: TextStyle(color: Colors.white, fontSize: 16)),
               ),
             ),            
           ],

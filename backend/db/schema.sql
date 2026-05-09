@@ -20,13 +20,25 @@ CREATE TABLE IF NOT EXISTS users (
   -- 이메일 인증 완료 시간
   verified_at TIMESTAMPTZ NULL,
   -- 메일 인증 완료 여부
-  email_verified BOOLEAN NOT NULL DEFAULT FALSE,tions (email, is_active);
+  email_verified BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS email_verifications(
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  code_hash VARCHAR(64) NOT NULL, -- 인증번호 해시값
+  attempt_count INTEGER DEFAULT 0, -- 시도 횟수
+  max_attempts INTEGER DEFAULT 3, -- 최대 허용 횟수
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL, -- 만료 시간
+  verified_at TIMESTAMP WITH TIME ZONE, -- 인증 완료 시간
+  is_active BOOLEAN DEFAULT true, -- 활성화 여부
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 CREATE INDEX IF NOT EXISTS idx_users_student_id ON users (student_id);
-CREATE INDEX IF NOT EXISTS idx_email_verifications_email_active 
-ON email_verifications (email, is_active);
-
+CREATE INDEX IF NOT EXISTS idx_email_verifications_email_active ON email_verifications (email, is_active);
+CREATE INDEX idx_email_verifications_email_active ON email_verifications (email, is_active);

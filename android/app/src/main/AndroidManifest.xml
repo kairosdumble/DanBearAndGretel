@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
+        <meta-data
+        android:name="com.tmap.apikey"
+        android:value="TXChrUJFjq9O4TdlVdE5U5s9GI3f8Wlt6kHC4kAP" />
         android:label="dangretel"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

@@ -16,8 +16,10 @@ backend부터 실행(서버 구동)
 웹으로 보기
 - flutter run 입력
 
+API Key: frontend/lib/tmap_view.dart에서 7줄(_tMapApiKey)에 선언.
 
-# 파일 구조
+
+# 파일 구조 (frontend/lib)
 ├── main.dart                # 앱의 시작점
 ├── app.dart                 # 전체적인 테마, 라우팅 설정
 ├── core/                    # 앱 전반에 공통으로 쓰이는 것들
@@ -38,4 +40,4 @@ backend부터 실행(서버 구동)
     └── providers/           # 상태 관리 (Provider, Riverpod 등)
 
 screens: 화면 스크린 UI 
-widgets: 재사용성이 높은 위젯들을 따로 정리, 또는 screens 코드가 너무 길어지면 위젯을 분리해서 여기에 선언언
+widgets: 재사용성이 높은 위젯들을 따로 정리, 또는 screens 코드가 너무 길어지면 위젯을 분리해서 여기에 선언
