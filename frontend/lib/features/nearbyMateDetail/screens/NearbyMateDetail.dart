@@ -3,6 +3,9 @@ import '../widgets/TimeField.dart';
 import 'package:frontend/core/widgets/SearchBoxButton.dart';
 import 'package:frontend/features/home/screens/place.dart';
 import 'package:frontend/features/routeSearch/screens/placeSearchPage.dart';
+import 'package:frontend/features/nearbyMateList/screens/nearbyMateList.dart';
+//[TODO] onPressed에서 예약 생성 로직 추가하기 (벡엔드, DB는 존재.)
+
 class Nearbymatedetail extends StatefulWidget {
   const Nearbymatedetail({super.key});
 
@@ -161,13 +164,13 @@ class _NearbymatedetailState extends State<Nearbymatedetail> {
                   height: 58,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Navigator.pushReplacement(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //     builder: (context) =>
-                      //         const NearbyMateListPage(),
-                      //   ),
-                      // );
+                       Navigator.pushReplacement(
+                         context,
+                         MaterialPageRoute(
+                           builder: (context) =>
+                              const nearbyMateList(), 
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2F5DB3),
