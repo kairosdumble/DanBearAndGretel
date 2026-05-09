@@ -41,4 +41,3 @@ CREATE TABLE IF NOT EXISTS email_verifications(
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 CREATE INDEX IF NOT EXISTS idx_users_student_id ON users (student_id);
 CREATE INDEX IF NOT EXISTS idx_email_verifications_email_active ON email_verifications (email, is_active);
-CREATE INDEX idx_email_verifications_email_active ON email_verifications (email, is_active);

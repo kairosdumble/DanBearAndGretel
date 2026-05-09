@@ -8,6 +8,9 @@ backend부터 실행(서버 구동)
 - (윈도우 기준) cmd창에서 cd backend를 입력
 - npm run dev 입력
 
+- 데이터 스키마를 변경해서 DB 테이블 관련 오류가 뜬다면 원격 DB와 로컬DB의 마이그레이션 필요
+- npm install & node db/migrate.js 실행 행 후 npm run dev 입력
+
 2. frontend
 애뮬레이터나 실제기기 연결 시
 - cd frontend를 입력

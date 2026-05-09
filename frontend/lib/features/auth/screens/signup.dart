@@ -45,7 +45,7 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       print("에러 발생: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("서버 통신 중 오류가 발생했습니다.")),
+        SnackBar(content: Text("[회원가입] 서버 통신 중 오류가 발생했습니다.")),
       );
     }
   }

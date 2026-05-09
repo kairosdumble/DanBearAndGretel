@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       print("Error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("서버 통신 중 오류가 발생했습니다.")),
+        SnackBar(content: Text("[로그인] 서버 통신 중 오류가 발생했습니다. error: $e")),
       );
     }
   }
