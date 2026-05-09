@@ -89,14 +89,15 @@ class _RootPageState extends State<RootPage> {
       platformVersion =
           await _tmapUiSdkPlugin.getPlatformVersion() ?? 'Unknown platform version';
       var manager = TmapUISDKManager();
+      //[TODO] 개인 설정 필요
       AuthData authInfo = AuthData(
           clientServiceName: "",
           clientAppVersion: "",
           clientID: "",
-          clientApiKey: [발급받은 api key],
+          clientApiKey: ['발급받은 api key'],
           clientApCode: "",
-          userKey: [발급받은 user key 또는 빈문자열],
-          deviceKey: [발급받은 device key 또는 빈문자열],
+          userKey: ['발급받은 user key 또는 빈문자열'],
+          deviceKey: ['발급받은 device key 또는 빈문자열'],
           clientDeviceId: "",
           isAvailableInBackground: true
       );

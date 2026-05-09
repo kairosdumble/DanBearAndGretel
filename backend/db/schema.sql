@@ -1,5 +1,4 @@
 -- 단국대(@dankook.ac.kr 등) 메일 인증 기반 사용자 테이블
-
 CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
   -- 학번 (단국대 기준 8글자)
@@ -24,7 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
+-- 메일 검증 테이블
 CREATE TABLE IF NOT EXISTS email_verifications(
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL,
@@ -41,3 +40,13 @@ CREATE TABLE IF NOT EXISTS email_verifications(
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 CREATE INDEX IF NOT EXISTS idx_users_student_id ON users (student_id);
 CREATE INDEX IF NOT EXISTS idx_email_verifications_email_active ON email_verifications (email, is_active);
+
+-- 예약 정보
+CREATE TABLE reservations (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,          -- 로그인한 사용자 ID
+    departure_location TEXT NOT NULL, -- 출발장소
+    destination_location TEXT NOT NULL, -- 도착장소
+    departure_time TIMESTAMP NOT NULL, -- 출발시간
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 생성시간
+);
