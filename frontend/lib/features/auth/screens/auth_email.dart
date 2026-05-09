@@ -13,9 +13,9 @@ class AuthEmailScreen extends StatefulWidget {
 }
 
 class _AuthEmailScreenState extends State<AuthEmailScreen> {
-    String _enteredCode = '';
+  String _enteredCode = '';
 
-    Future<void> _verifyCode() async {
+  Future<void> _verifyCode() async {
       final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
       final response = await http.post(
         Uri.parse('$baseUrl/auth/email/verify-code'),
@@ -40,9 +40,10 @@ class _AuthEmailScreenState extends State<AuthEmailScreen> {
 
   Future<void> _sendAuthCode() async {
     final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
+    print('인증코드 전송 시도: ${widget.email}'); // 디버깅용
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/email/send-code'),
+        Uri.parse("$baseUrl/auth/email/send-code"),
         headers: {'Content-Type': 'application/json'},
         body: '{"email": "${widget.email}"}',
       );

@@ -85,7 +85,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   onPressed: () {
                     Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => AuthEmailScreen(email: "yir1125@dankook.ac.kr"),
+                      builder: (_) => AuthEmailScreen(email: "yir1125@dankook.ac.kr"), // 예시 이메일
                       ),
                     );
                   },
