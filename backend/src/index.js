@@ -8,6 +8,7 @@ const authRoutes = require("./routes/auth.routes");
 const rateLimit = require("express-rate-limit");
 
 const app = express();
+const baseUrl = process.env.BASE_URL;
 const port = Number(process.env.PORT) || 3000;
 const tmapApiKey = process.env.TMAP_API_KEY || process.env.TMAP_APP_KEY || "";
 const tmapPoiBaseUrl = "https://apis.openapi.sk.com/tmap/pois";
@@ -50,7 +51,7 @@ app.get("/", (_req, res) => {
 
 const server = app.listen(port, () => {
   // eslint-disable-next-line no-console
-  console.log(`Server listening on http://localhost:${port}`);
+  console.log(`Server listening on ${baseUrl}:${port}`);
 });
 
 server.on("error", (err) => {

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'place.dart';
-import '../../routeSearch/screens/place_search_page.dart';
+import '../../routeSearch/screens/placeSearchPage.dart';
+import 'package:frontend/core/widgets/SearchBoxButton.dart';
 import 'tmap_view.dart';
+
+//[테스트 용]
+import '../../nearbyMateDetail/screens/nearbyMateDetail.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -34,8 +38,8 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
       }
     });
   }
-Widget build(BuildContext context) {
-  
+  @override
+  Widget build(BuildContext context) {
     final canFindMate = _departure != null && _destination != null;
 
     return Scaffold(
@@ -100,7 +104,14 @@ Widget build(BuildContext context) {
                       SizedBox(
                         height: 32,
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () { 
+                            // [테스트용]RouteSearchScreen으로 이동 (나중에 삭제)
+                              Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => Nearbymatedetail(),
+                              ),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE0E0E0),
                             foregroundColor: Colors.black,
@@ -122,7 +133,7 @@ Widget build(BuildContext context) {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _buildSearchBoxButton(
+                  SearchBoxButton(
                     label: _departure?.name ?? '출발지를 검색하세요',
                     subtitle: _departure?.roadAddress,
                     onTap: () => _openSearch(PlaceSearchType.departure),
@@ -136,7 +147,7 @@ Widget build(BuildContext context) {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _buildSearchBoxButton(
+                  SearchBoxButton(
                     label: _destination?.name ?? '목적지를 검색하세요',
                     subtitle: _destination?.roadAddress,
                     onTap: () => _openSearch(PlaceSearchType.destination),
@@ -170,70 +181,6 @@ Widget build(BuildContext context) {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBoxButton({
-    required String label,
-    required VoidCallback onTap,
-    String? subtitle,
-  }) {
-    final hasSelection = subtitle != null;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        height: hasSelection ? 66 : 50,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(
-            color: const Color(0xFFD4D4D4),
-            width: 1.5,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight:
-                          hasSelection ? FontWeight.w700 : FontWeight.w500,
-                      color: hasSelection
-                          ? const Color(0xFF1F2937)
-                          : const Color(0xFF9CA3AF),
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Icon(Icons.search, color: Color(0xFF3056A0)),
-          ],
-        ),
       ),
     );
   }

@@ -343,7 +343,7 @@ class _PlaceSearchPageState extends State<PlaceSearchPage> {
 
     return ListView.separated(
       itemCount: _items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final place = _items[index];
         final addressLine = place.distanceLabel == null

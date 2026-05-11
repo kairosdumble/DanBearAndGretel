@@ -1,8 +1,12 @@
 ﻿/*
 import 'package:flutter/material.dart';
-import 'package:frontend/features/nearbyMateList/screens/mate_list_screen.dart';
+import 'dart:async';
+import 'package:frontend/features/auth/screens/auth_header.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
   runApp(const DangretelApp());
 }
 

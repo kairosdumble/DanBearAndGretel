@@ -69,6 +69,7 @@ async function signup(req, res) {
     });
   } catch (error) {
     console.error("회원가입 에러:", error);
+    print("회원가입 에러:", error);
     res.status(500).json({ message: "서버 내부 에러가 발생했습니다." });
   }
 }

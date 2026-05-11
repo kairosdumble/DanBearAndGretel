@@ -96,7 +96,7 @@ class MainActivity: FlutterFragmentActivity() {
 </code></pre>
 <br></br>
 
-* AndroidMenifest.xml의 수정
+* 인증하기enifest.xml의 수정
 	* TmapUISDK는 내부적으로 여러 모듈로 이루어져 있어 tools.replace를 이용하여 label을 변경할 수 있도록 추가합니다.
 	* Material Design을 사용하고 있으므로 app의 theme을 MaterialComponents를 이용할 수 있도록 조정합니다.
 <pre><code>

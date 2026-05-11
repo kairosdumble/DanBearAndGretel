@@ -1,6 +1,6 @@
 # Dangretel Backend Render 배포 및 이메일 인증 보안 가이드
 
-## 1. Render 서버 배포 준비->ok
+## 1. Render 서버 배포 준비
 
 - backend/package.json에 nodemailer가 포함되어 있습니다.
 - backend/.env 파일에 메일 환경변수(MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS, MAIL_FROM)를 반드시 Render 환경변수로 등록하세요.
