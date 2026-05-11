@@ -5,7 +5,7 @@ const pool = require("../db/pool");
 const reservationService = require('../services/reservation.service');
 
     // POST / API 예약 등록
-async function registerReservation(req, res) {
+async function createReservation(req, res) {
     try {
         const userId = req.user.id; // 인증 미들웨어에서 추출한 ID
         const newReservation = await reservationService.createReservation(userId, req.body);
@@ -42,4 +42,4 @@ async function putReservation(req, res) {
     }
 }
 
-module.exports = { registerReservation, getReservation, putReservation };
+module.exports = { createReservation, getReservation, putReservation };
