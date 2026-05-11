@@ -63,3 +63,6 @@ server.on("error", (err) => {
   }
   throw err;
 });
+
+const reservationRoutes = require('./routes/reservation.routes');
+app.use('/api/reservations', reservationRoutes);
