@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:frontend/features/home/screens/home.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,10 +18,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // 로그인 통신 함수
   Future<void> _handleLogin() async {
-    final url = Uri.parse('http://localhost:3000/auth/login');
     try {
       final response = await http.post(
-        url,
+        Uri.parse('${dotenv.env['BASE_URL']}/auth/login'),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "email": _emailController.text,
