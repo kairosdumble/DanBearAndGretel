@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../nearbyMateDetail/screens/NearbyMateDetail.dart';
 
 class MateEmptyView extends StatelessWidget {
   const MateEmptyView({super.key});
@@ -30,7 +31,9 @@ class MateEmptyView extends StatelessWidget {
             height: 55,
             child: ElevatedButton(
               onPressed: () {
-                // 예약 생성 로직 또는 페이지 이동
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const Nearbymatedetail()),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3F51B5),

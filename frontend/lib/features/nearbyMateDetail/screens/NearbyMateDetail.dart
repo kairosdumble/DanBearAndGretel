@@ -4,9 +4,10 @@ import 'package:frontend/core/widgets/SearchBoxButton.dart';
 import 'package:frontend/features/home/screens/place.dart';
 import 'package:frontend/features/routeSearch/screens/placeSearchPage.dart';
 import 'package:frontend/features/nearbyMateList/screens/nearbyMateList.dart';
-//[TODO] onPressed에서 예약 생성 로직 추가하기 (벡엔드, DB는 존재.)
 
 class Nearbymatedetail extends StatefulWidget {
+  //[TODO] 출발지, 목적지 정보 받아올 수 있도록 생성자 수정하기.
+  //일단은 테스트 용으로, 생성자 없이 고정된 화면으로 만들어둔 상태입니다.
   const Nearbymatedetail({super.key});
 
   @override

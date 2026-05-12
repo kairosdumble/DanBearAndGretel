@@ -1,3 +1,4 @@
+// 매칭 가능 동승자가 없을 경우 뜨는 예약생성 화면
 import 'package:flutter/material.dart';
 import '../widgets/mate_card.dart';
 import '../widgets/mate_empty_view.dart';

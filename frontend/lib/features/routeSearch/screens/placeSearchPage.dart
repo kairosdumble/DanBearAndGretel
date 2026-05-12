@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../home/screens/place.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 enum PlaceSearchType { departure, destination }
 
@@ -30,10 +31,7 @@ class PlaceSearchPage extends StatefulWidget {
 }
 
 class _PlaceSearchPageState extends State<PlaceSearchPage> {
-  static const String _configuredBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: '',
-  );
+  final String baseUrl = dotenv.env['BASE_URL'] ?? '';
 
   final TextEditingController _controller = TextEditingController();
   Timer? _debounce;
@@ -188,8 +186,7 @@ class _PlaceSearchPageState extends State<PlaceSearchPage> {
   }
 
   String _buildTimeoutMessage() {
-    if (defaultTargetPlatform == TargetPlatform.android &&
-        _configuredBaseUrl.isEmpty) {
+    if (defaultTargetPlatform == TargetPlatform.android && baseUrl.isEmpty) {
       return '서버 연결 시간이 초과되었습니다. 에뮬레이터면 $_resolvedBaseUrl 가 맞지만, 실제 안드로이드 기기면 PC의 IP로 API_BASE_URL을 지정해야 합니다.';
     }
 
@@ -198,7 +195,7 @@ class _PlaceSearchPageState extends State<PlaceSearchPage> {
 
   String _buildSocketErrorMessage(SocketException error) {
     if (defaultTargetPlatform == TargetPlatform.android &&
-        _configuredBaseUrl.isEmpty) {
+        baseUrl.isEmpty) {
       return '검색 서버에 연결할 수 없습니다. 현재 주소는 $_resolvedBaseUrl 입니다. 에뮬레이터가 아니라 실제 안드로이드 기기라면 --dart-define=API_BASE_URL=http://PC_IP:3000 으로 실행해야 합니다. (${error.message})';
     }
 
@@ -206,16 +203,10 @@ class _PlaceSearchPageState extends State<PlaceSearchPage> {
   }
 
   String _baseUrl() {
-    if (_configuredBaseUrl.isNotEmpty) {
-      return _configuredBaseUrl;
+    if (baseUrl.isNotEmpty) {
+      return baseUrl;
     }
-    if (kIsWeb) {
-      return 'http://localhost:3000';
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:3000';
-    }
-    return 'http://localhost:3000';
+    return "서버 연결 주소가 잘못 설정되었습니다. flutter/.env 파일에 BASE_URL을 설정하세요.";
   }
 
   @override
