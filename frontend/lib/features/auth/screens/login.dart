@@ -29,11 +29,14 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       final result = json.decode(response.body);
+
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("로그인에 성공했습니다!")),
         );
-        // 성공 시 다음 화면(메인 등)으로 이동하는 코드
+        Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['message'] ?? "로그인 실패")),
@@ -81,11 +84,6 @@ class _LoginScreenState extends State<LoginScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   _handleLogin();
-                  Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => HomePage(),
-                    ),
-                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF3F51B5),

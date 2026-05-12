@@ -1,3 +1,4 @@
+import 'dart:convert'; // JSON 인코딩/디코딩
 import 'package:flutter/material.dart';
 import 'package:frontend/features/auth/widgets/colors.dart'; // 색깔 통합
 import 'package:http/http.dart' as http; // 메일전송
@@ -15,23 +16,57 @@ class AuthEmailScreen extends StatefulWidget {
 class _AuthEmailScreenState extends State<AuthEmailScreen> {
   String _enteredCode = '';
 
-  Future<void> _verifyCode() async {
-      final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/email/verify-code'),
-        headers: {'Content-Type': 'application/json'},
-        body: '{"email": "${widget.email}", "code": "$_enteredCode"}',
+  Future<void> _verifyCode() async{
+  final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
+  
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/email/verify-code'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "email": widget.email,
+        "code": _enteredCode,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // 1. 성공 시 스낵바 메시지 출력
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('인증에 성공했습니다!'),
+          backgroundColor: Colors.blue,
+        ),
       );
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('인증 성공!')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('인증 실패. 코드를 확인하세요.')),
-        );
-      }
+
+      // 2. 잠시 후 이전 화면(회원가입 창)으로 돌아가기
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        Navigator.of(context).pop(true); // true를 전달하여 성공 상태를 알림
+      });
+      
+    } else {
+      // 3. 실패 시 에러 메시지 출력
+      final errorData = jsonDecode(response.body);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorData['message'] ?? '인증 실패. 코드를 확인하세요.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
+  } catch (e) {
+    // 4. 네트워크 오류 등 예외 처리
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('서버 통신 중 오류가 발생했습니다.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+  } 
   @override
   void initState() {
     super.initState();
