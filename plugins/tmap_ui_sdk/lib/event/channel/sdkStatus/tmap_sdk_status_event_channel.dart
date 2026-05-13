@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 
-import '/event/data/sdkStatus/tmap_sdk_status.dart';
+import 'package:tmap_ui_sdk/event/data/sdkStatus/tmap_sdk_status.dart';
 
 class TmapSDKStatusEvent {
   static const String CHANNEL_NAME = 'com.tmapmobility.tmap.tmapsdk.flutter.tmapuisdk/event.sdkStatus';

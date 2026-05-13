@@ -31,9 +31,16 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+**/build/
 /coverage/
 **/.env
 postgres_data/
+**/.gradle/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/xcuserdata/
 
 # Symbolication related
 app.*.symbols

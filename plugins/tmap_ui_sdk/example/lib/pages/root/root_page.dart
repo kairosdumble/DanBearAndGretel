@@ -94,10 +94,10 @@ class _RootPageState extends State<RootPage> {
           clientServiceName: "",
           clientAppVersion: "",
           clientID: "",
-          clientApiKey: ['발급받은 api key'],
+          clientApiKey: "",
           clientApCode: "",
-          userKey: ['발급받은 user key 또는 빈문자열'],
-          deviceKey: ['발급받은 device key 또는 빈문자열'],
+          userKey: "",
+          deviceKey: "",
           clientDeviceId: "",
           isAvailableInBackground: true
       );

@@ -1,4 +1,4 @@
-package android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk
+package com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk
 
 import android.content.Context
 import io.flutter.plugin.common.StandardMessageCodec

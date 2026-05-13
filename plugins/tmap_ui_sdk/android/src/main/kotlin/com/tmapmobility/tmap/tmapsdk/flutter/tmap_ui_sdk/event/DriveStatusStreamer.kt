@@ -1,6 +1,6 @@
-package android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event
+package com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event
 
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.TmapDriveStatusModel
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.TmapDriveStatusModel
 import io.flutter.plugin.common.EventChannel
 
 class DriveStatusStreamer: EventChannel.StreamHandler {

@@ -1,4 +1,4 @@
-package android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.drive_guide
+package com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.drive_guide
 
 import com.google.gson.annotations.SerializedName
 

@@ -1,4 +1,4 @@
-package android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk
+package com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk
 
 import android.content.Context
 import android.content.ContextWrapper
@@ -20,13 +20,13 @@ import com.skt.tmap.vsm.map.marker.MarkerImage
 import com.skt.tmap.vsm.map.marker.VSMMarkerBase
 import com.skt.tmap.vsm.map.marker.VSMMarkerPoint
 import com.skt.tmap.vsm.map.marker.VSMMarkerPolyline
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveGuideStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveStatusStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.MarkerStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.SDKStatusStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.*
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.drive_guide.TmapDriveGuideModel
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.utils.PreferenceUtils
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveGuideStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveStatusStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.MarkerStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.SDKStatusStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.*
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.drive_guide.TmapDriveGuideModel
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.utils.PreferenceUtils
 import android.util.Log
 import android.widget.Toast
 import com.tmapmobility.tmap.tmapsdk.ui.data.CarOption
@@ -277,7 +277,7 @@ class TmapUiSdkView(
         문제의 exception "The Android view returned from PlatformView#getView() was already added to a parent view."은 flutter 내부의 initializePlatformViewIfNeeded 함수에서 벌어짐
 
         call stack
-          getView:251, TmapUiSdkView (android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk)
+          getView:251, TmapUiSdkView (com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk)
           initializePlatformViewIfNeeded:1051, PlatformViewsController (io.flutter.plugin.platform)
           onDisplayPlatformView:1115, PlatformViewsController (io.flutter.plugin.platform)
           onDisplayPlatformView:1398, FlutterJNI (io.flutter.embedding.engine)
