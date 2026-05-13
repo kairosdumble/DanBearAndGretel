@@ -1,9 +1,20 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val envProperties = Properties()
+val envFile = rootProject.file("../.env")
+if (envFile.exists()) {
+    envFile.inputStream().use { envProperties.load(it) }
+}
+val tmapApiKey: String = envProperties.getProperty("TMAP_API_KEY")
+    ?: System.getenv("TMAP_API_KEY")
+    ?: ""
 
 android {
     namespace = "com.example.frontend"
@@ -32,6 +43,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["tmapApiKey"] = tmapApiKey
     }
 
     buildTypes {

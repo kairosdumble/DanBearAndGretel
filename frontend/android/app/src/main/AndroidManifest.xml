@@ -11,7 +11,7 @@
         tools:replace="android:label">
         <meta-data
             android:name="com.tmap.apikey"
-            android:value="TXChrUJFjq9O4TdlVdE5U5s9GI3f8Wlt6kHC4kAP" />
+            android:value="${tmapApiKey}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_navi_sdk/flutter_navi_sdk.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-const _tMapApiKey = 'TXChrUJFjq9O4TdlVdE5U5s9GI3f8Wlt6kHC4kAP'; //키
 
 class TMapView extends StatefulWidget {
   const TMapView({super.key});
@@ -100,9 +99,18 @@ class _TMapViewState extends State<TMapView> {
         _statusMessage = 'Initializing T map SDK...';
       });
 
+      final tMapApiKey = dotenv.env['TMAP_API_KEY'] ?? '';
+      if (tMapApiKey.isEmpty) {
+        setState(() {
+          _isInitializing = false;
+          _statusMessage = 'TMAP_API_KEY is not configured.';
+        });
+        return;
+      }
+
       final result = await TmapUISDKManager().initSDK(
         AuthData(
-          clientApiKey: _tMapApiKey,
+          clientApiKey: tMapApiKey,
           isAvailableInBackground: true,
         ),
       );
