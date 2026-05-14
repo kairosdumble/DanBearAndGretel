@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../nearbyMateDetail/screens/NearbyMateDetail.dart';
+import '../../nearbyMateDetail/screens/nearbyMateDetail.dart';
 
 class MateEmptyView extends StatelessWidget {
   const MateEmptyView({super.key});
@@ -32,7 +32,7 @@ class MateEmptyView extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const Nearbymatedetail()),
+                  MaterialPageRoute(builder: (_) => const NearbyMateDetail()),
                 );
               },
               style: ElevatedButton.styleFrom(

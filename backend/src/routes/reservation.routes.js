@@ -1,10 +1,13 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const reservationController = require('../controllers/reservationController');
+const reservationController = require("../controllers/reservationController");
+const { authenticate } = require("../middleware/auth.middleware");
 
-// 사용자가 POST 방식으로 /api/reservations 주소에 접근하면 실행됨
-router.post('/', reservationController.createReservation);
+// app.use("/api/reservations", router) → POST/GET /api/reservations, PUT /api/reservations/:id
+router.use(authenticate);
 
-router.get('/', reservationController.getReservation);
+router.post("/create", reservationController.createReservation);
+router.get("/get", reservationController.getReservation);
+router.put("/put/:id", reservationController.putReservation);
 
 module.exports = router;

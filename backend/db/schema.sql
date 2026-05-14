@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
 -- 메일 검증 테이블
 CREATE TABLE IF NOT EXISTS email_verifications(
   id SERIAL PRIMARY KEY,
@@ -42,11 +43,18 @@ CREATE INDEX IF NOT EXISTS idx_users_student_id ON users (student_id);
 CREATE INDEX IF NOT EXISTS idx_email_verifications_email_active ON email_verifications (email, is_active);
 
 -- 예약 정보
-CREATE TABLE reservations (
+CREATE TABLE IF NOT EXISTS reservations (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,          -- 로그인한 사용자 ID
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- 예약자 id
     departure_location TEXT NOT NULL, -- 출발장소
     destination_location TEXT NOT NULL, -- 도착장소
     departure_time TIMESTAMP NOT NULL, -- 출발시간
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 생성시간
+);
+
+-- 참여자 관리 테이블
+CREATE TABLE IF NOT EXISTS reservation_participants (
+    reservation_id INTEGER REFERENCES reservations(id) ON DELETE CASCADE, -- 예약 항목 번호
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- 참여자 id
+    PRIMARY KEY (reservation_id, user_id) -- 한 명의 사용자가 같은 예약에 중복 체크인 방지
 );

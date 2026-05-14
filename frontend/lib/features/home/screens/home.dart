@@ -4,7 +4,7 @@ import 'place.dart';
 import '../../routeSearch/screens/placeSearchPage.dart';
 import 'package:frontend/core/widgets/SearchBoxButton.dart';
 import 'tmap_view.dart';
-import '../../nearbyMateList/screens/mate_list_screen.dart';
+import '../../nearbyMateList/screens/mateListScreen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

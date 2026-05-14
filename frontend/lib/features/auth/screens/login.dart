@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/features/home/screens/home.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -31,6 +32,11 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = json.decode(response.body);
 
       if (response.statusCode == 200) {
+        final token = result['token'];
+        if (token is String && token.isNotEmpty) {
+          await AuthTokenStorage.saveToken(token);
+        }
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("로그인에 성공했습니다!")),
         );
