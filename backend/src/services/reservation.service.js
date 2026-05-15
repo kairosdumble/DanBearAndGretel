@@ -56,6 +56,14 @@ const reservationService = {
         return rows;
     },
 
+    // DB에 있는 모든 예약 행 (필터 없음)
+    getAllReservations: async () => {
+        const query =
+            'SELECT * FROM reservations ORDER BY departure_time ASC NULLS LAST, id ASC';
+        const { rows } = await pool.query(query);
+        return rows;
+    },
+
     // [UPDATE] 기존 예약 수정 (기존 putReservation 대응)
     updateReservation: async (reservationId, userId, updateData) => {
         const { departure_location, destination_location, departure_time } = updateData;

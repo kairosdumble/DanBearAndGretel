@@ -36,6 +36,16 @@ async function getReservation(req, res) {
         }
 }
 
+/** GET — reservations 테이블 전체 행 (로그인 필요, 필터 없음) */
+async function getAllReservations(req, res) {
+    try {
+        const reservations = await reservationService.getAllReservations();
+        res.status(200).json(reservations);
+    } catch (error) {
+        res.status(500).json({ message: "전체 예약 조회 중 오류 발생", error: error.message });
+    }
+}
+
     // PUT /:id API 예약 수정 (기존 putReservation 보완)
 async function putReservation(req, res) {
     try {
@@ -52,4 +62,4 @@ async function putReservation(req, res) {
     }
 }
 
-module.exports = { createReservation, getReservation, putReservation };
+module.exports = { createReservation, getReservation, getAllReservations, putReservation };
