@@ -1,10 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'dart:async';
-import 'place.dart';
-import '../../routeSearch/screens/placeSearchPage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/core/widgets/SearchBoxButton.dart';
+
+import '../../nearbyMateList/screens/nearbyMateList.dart';
+import '../../nearbyMateList/screens/zeroMate.dart';
+import '../../routeSearch/screens/placeSearchPage.dart';
+import 'place.dart';
 import 'tmap_view.dart';
-import '../../nearbyMateList/screens/mateListScreen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -36,11 +43,76 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
       }
     });
   }
+
+  Future<void> _onFindMatePressed() async {
+    if (_departure == null || _destination == null) return;
+
+    final token = await AuthTokenStorage.getToken();
+    if (!mounted) return;
+    if (token == null || token.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인이 필요합니다.')),
+      );
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/reservations/all'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      String? errorMessage;
+      var hasReservations = false;
+
+      if (response.statusCode != 200) {
+        errorMessage = '예약 목록을 불러오지 못했습니다. (${response.statusCode})';
+      } else {
+        try {
+          final decoded = json.decode(response.body);
+          final list = decoded is List ? decoded : <dynamic>[];
+          hasReservations = list.isNotEmpty;
+        } catch (_) {
+          errorMessage = '예약 목록 응답을 처리하지 못했습니다.';
+        }
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+
+      if (errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+        return;
+      }
+
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => hasReservations
+              ? const NearbyMateList()
+              : const ZeroMateScreen(),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('네트워크 오류: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    //[TODO] 출발지, 목적지 검색 구현 완료 되면 아래의 canFindMate 조건 다시 활성화 시키기
-    //final canFindMate = _departure != null && _destination != null;
-    bool canFindMate = true; //[TODO] 테스트용으로 true로 고정해둔 상태입니다. 나중에는 위의 코드 활성화 후, 삭제 해주세요
+    final canFindMate = _departure != null && _destination != null; // 출발지, 목적지 입력 완료시 동승자 찾기 버튼 활성화
     return Scaffold(
       body: Stack(
         children: [
@@ -148,17 +220,8 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
                   SizedBox(
                     width: double.infinity,
                     height: 55,
-                    child:ElevatedButton(
-                      onPressed: () {
-                        //RouteSearchScreen으로 이동
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>MateListScreen(), // [TODO] 출발지, 도착지 정보 전달 필요
-                          ),
-                        );
-                      },
-                      //[TODO] 출발지, 목적지 검색 구현 완료 되면 다시 활성화 시키기
-                      //canFindMate ? () {} : null,
+                    child: ElevatedButton(
+                      onPressed: canFindMate ? _onFindMatePressed : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3056A0),
                         disabledBackgroundColor: const Color(0xFFB9C6E2),

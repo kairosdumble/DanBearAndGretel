@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../widgets/mate_card.dart';
 import '../widgets/mate_empty_view.dart';
 
-class MateListScreen extends StatelessWidget {
-  const MateListScreen({super.key});
+class ZeroMateScreen extends StatelessWidget {
+  const ZeroMateScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

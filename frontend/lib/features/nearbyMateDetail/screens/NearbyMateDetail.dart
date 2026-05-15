@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
-import '../widgets/TimeField.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // .env 파일 로드용
+
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:developer' as developer;
+
+import '../widgets/TimeField.dart';
 import 'package:frontend/core/widgets/SearchBoxButton.dart';
+import 'package:frontend/core/auth/auth_token_storage.dart';
+
 import 'package:frontend/features/home/screens/place.dart';
 import 'package:frontend/features/routeSearch/screens/placeSearchPage.dart';
 import 'package:frontend/features/nearbyMateList/screens/nearbyMateList.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // .env 파일 로드용
-import 'package:frontend/core/auth/auth_token_storage.dart';
 
 class NearbyMateDetail extends StatefulWidget {
   //[TODO] 출발지, 목적지 정보 받아올 수 있도록 생성자 수정하기.
@@ -133,7 +136,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const nearbyMateList(),
+            builder: (context) => const NearbyMateList(),
           ),
         );
       } else {
