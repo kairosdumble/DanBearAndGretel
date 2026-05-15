@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:frontend/core/auth/auth_token_storage.dart';
+import 'package:frontend/features/nearbyMateDetail/screens/NearbyMateDetail.dart';
 
 class NearbyMateList extends StatefulWidget {
   const NearbyMateList({super.key});
@@ -113,6 +114,34 @@ class _NearbyMateListState extends State<NearbyMateList> {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const NearbyMateDetail(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2C55A1),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                      minimumSize: const Size(100, 36),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      '새 예약 생성',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
