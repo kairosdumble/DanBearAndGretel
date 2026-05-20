@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:frontend/core/auth/auth_token_storage.dart';
+import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
 import 'package:frontend/features/nearbyMateDetail/screens/NearbyMateDetail.dart';
 
 class NearbyMateList extends StatefulWidget {
@@ -192,7 +193,33 @@ class _NearbyMateListState extends State<NearbyMateList> {
                             ? '예약자 #$bookerId · 출발 시간 미정'
                             : '예약자 #$bookerId · 출발 $when',
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const MateChatScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2C55A1),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          minimumSize: const Size(72, 36),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          '채팅',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
                   );
                 }),
