@@ -1,5 +1,5 @@
-name: frontend
-description: "A new Flutter project."
+name: 단곰이와 그레텔
+description: 단국대학교 이메일 인증 기반 택시 공동 탑승 어플
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -39,6 +39,7 @@ dependencies:
     path: ../plugins/flutter_navi_sdk
   geolocator: ^13.0.2
   permission_handler: ^11.4.0
+  flutter_blue_plus: ^1.35.5
 
 dev_dependencies:
   flutter_test:
