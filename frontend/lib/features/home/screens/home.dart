@@ -12,6 +12,7 @@ import '../../nearbyMateList/screens/zeroMate.dart';
 import '../../routeSearch/screens/placeSearchPage.dart';
 import 'place.dart';
 import 'tmap_view.dart';
+import '../../setting/screens/settingScreen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -244,6 +245,19 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
               ),
             ),
           ),
+          Positioned(
+            top: 10,
+            right: 20,
+            child: IconButton(
+              icon: const Icon(Icons.settings, size: 28, color: Colors.black54),
+              onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingScreen()),
+              );
+            },
+          ),
+        ),
         ],
       ),
     );
