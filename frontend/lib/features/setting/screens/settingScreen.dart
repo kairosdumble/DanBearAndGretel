@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'settingEditScreen.dart'; 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({Key? key}) : super(key: key);
@@ -22,10 +26,39 @@ class _SettingScreenState extends State<SettingScreen> {
   @override
   void initState() {
     super.initState();
-    // TODO: 화면 진입 시 서버나 로컬 스토리지에서 사용자 정보를 불러오는 함수 호출
-    // _loadUserData();
+    _loadUserData();
   }
 
+  Future<void> _loadUserData() async {
+    try {
+      String? token = await AuthTokenStorage.getToken();
+
+      if (token == null || token.isEmpty) {
+        print("저장된 토큰이 없습니다. 로그인 필요.");
+        return;
+      }
+      final url = Uri.parse('${dotenv.env['BASE_URL']}/api/user/profile'); // 백엔드 API 엔드포인트
+      
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          userName = data['name']; // 백엔드에서 보낸 필드명과 일치해야 함
+        });
+      } else {
+        print("데이터 로드 실패: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("통신 에러: $e");
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(

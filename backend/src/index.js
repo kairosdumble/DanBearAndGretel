@@ -6,6 +6,7 @@ const cors = require("cors");
 const pool = require("./db/pool");
 const authRoutes = require("./routes/auth.routes");
 const rateLimit = require("express-rate-limit");
+const userRoutes = require('./routes/user.routes');
 
 const app = express();
 const baseUrl = process.env.BASE_URL;
@@ -30,6 +31,7 @@ app.use(cors());
 app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/auth/email", authLimiter);
+app.use('/api/user', userRoutes);
 
 function buildTmapPoiUrl(query) {
   const url = new URL(tmapPoiBaseUrl);

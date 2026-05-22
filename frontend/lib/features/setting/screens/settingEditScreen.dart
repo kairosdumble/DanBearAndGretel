@@ -96,7 +96,7 @@ class _SettingEditScreenState extends State<SettingEditScreen> {
             const SizedBox(height: 8),
             _buildTextField(
               controller: _nicknameController,
-              hintText: '단곰', // 예시 이미지에 있는 placeholder
+              hintText: '닉네임을 입력해주세요', // 예시 이미지에 있는 placeholder
             ),
             const SizedBox(height: 30),
 
