@@ -1,4 +1,5 @@
 const reservationService = require("../services/reservation.service");
+const proximityMatchService = require("../services/proximityMatch.service");
 
 // POST /api/reservations
 async function createReservation(req, res) {
@@ -62,4 +63,71 @@ async function putReservation(req, res) {
     }
 }
 
-module.exports = { createReservation, getReservation, getAllReservations, putReservation };
+// 예약 확정
+// - 블루투스 매칭 화면에서 클릭시 해당 사용자가 reservation_participants에 추가됨.
+async function confirmProximityMatch(req, res) {
+    try {
+        const {reservation_id:reservationId} = req.params;
+        if (reservationId == null) {
+            return res.status(400).json({ message: "예약 ID가 필요합니다." });
+        }
+        const userId = req.user.id; // 미들웨어가 해독해줌.
+        const confirmed = await proximityMatchService.confirm(
+            Number(reservationId),
+            userId
+        );
+        res.status(200).json(confirmed);
+    } catch (error) {
+        res.status(500).json({ message: "예약 확정 중 오류 발생", error: error.message });
+    }
+}
+
+// 예약 취소
+// - 블루투스 매칭 화면에서 클릭시 해당 사용자가 reservation_participants에서 삭제됨.
+async function cancelProximityMatch(req, res) {
+    try {
+        const {reservation_id:reservationId} = req.params;
+        if (reservationId == null) {
+            return res.status(400).json({ message: "예약 ID가 필요합니다." });
+        }
+        const userId = req.user.id;
+        const cancelled = await proximityMatchService.cancel(
+            Number(reservationId),
+            userId
+        );
+        if (!cancelled) {
+            return res.status(404).json({ message: "참여 기록을 찾을 수 없습니다." });
+        }
+        res.status(200).json(cancelled);
+    } catch (error) {
+        res.status(500).json({ message: "예약 취소 중 오류 발생", error: error.message });
+    }
+}
+async function getProximityMatch(req,res){
+    try {
+        const {reservation_id:reservationId} = req.params;
+        if (reservationId == null) {
+            return res.status(400).json({ message: "예약 ID가 필요합니다." });
+        }
+        const userId = req.user.id;
+        const cancelled = await proximityMatchService.get(
+            Number(reservationId),
+            userId
+        );
+        if (!cancelled) {
+            return res.status(404).json({ message: "참여 기록을 찾을 수 없습니다." });
+        }
+        res.status(200).json(cancelled);
+    } catch (error) {
+        res.status(500).json({ message: "예약 취소 중 오류 발생", error: error.message });
+    }
+}
+module.exports = {
+    createReservation,
+    getReservation,
+    getAllReservations,
+    putReservation,
+    confirmProximityMatch,
+    cancelProximityMatch,
+    getProximityMatch,
+};
