@@ -1,50 +1,80 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:frontend/features/bluetooth/services/bluetooth_readiness_service.dart';
 import 'package:frontend/features/bluetooth/services/proximity_match_api.dart';
 
 class BluetoothMatchingScreen extends StatefulWidget {
   final int reservationId;
   const BluetoothMatchingScreen({
     super.key,
-    required this.reservationId
+    required this.reservationId, //현재 예약 ID를 받아서, 매칭 버튼을 누르면 DB에 해당 사용자가 해당 예약을 매칭 완료했다고 표시하게 된다.
   });
   @override
   State<BluetoothMatchingScreen> createState() => _BluetoothMatchingScreenState();
 }
 
 class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  bool _isSubmitting = false;
+    with SingleTickerProviderStateMixin { // 블루투스 파장 애니메이션을 위해 사용
+  late AnimationController _animationController; // 애니메이션 컨트롤러 선언
+  StreamSubscription<BluetoothAdapterState>? _adapterSubscription; // 블루투스 상태 모니터링을 위해 사용 
+  bool _isSubmitting = false; // 매칭 완료 버튼이 눌렸는지 여부를 나타내는 상태 변수
+  bool _isBluetoothReady = false; // 블루투스가 사용 가능한 상태인지 여부를 나타내는 상태 변수
+  // 매칭 완료 버튼이 활성화될 수 있는 조건: 블루투스가 사용 가능하고, 매칭 완료 요청이 진행 중이지 않을 때
+  bool get _canCompleteMatch => _isBluetoothReady && !_isSubmitting;
 
   @override
   void initState() {
     super.initState();
-    // 블루투스 파동 애니메이션을 위한 컨트롤러 (무한 반복)
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 2), // 애니메이션이 한 사이클을 도는 데 걸리는 시간
     )..repeat();
+    _initBluetoothMonitoring();
+  }
+
+  Future<void> _initBluetoothMonitoring() async {
+    await _refreshBluetoothState(requestPermission: true);
+
+    _adapterSubscription = FlutterBluePlus.adapterState.listen((_) {
+      _refreshBluetoothState(requestPermission: false);
+    });
+  }
+
+  Future<void> _refreshBluetoothState({required bool requestPermission}) async {
+    final ready = await BluetoothReadinessService.ensureReady(
+      requestPermission: requestPermission,
+    );
+    if (mounted) {
+      setState(() => _isBluetoothReady = ready);
+    }
   }
 
   @override
   void dispose() {
+    _adapterSubscription?.cancel();
     _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _onConfirmMatch() async {
-    setState(() => _isSubmitting = true);
+    if (!_canCompleteMatch) return; // 매칭 실패 시
+
+    setState(() => _isSubmitting = true); 
     try {
-      final ok =
-          await ProximityMatchApi.confirm(widget.reservationId);
+      final ok = await ProximityMatchApi.confirm(widget.reservationId);
       if (!mounted) return;
+      // 매칭 완료 API 호출이 성공적으로 완료된 경우
       if (ok) {
         Navigator.of(context).pop(true);
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('매칭 확정에 실패했습니다. 다시 시도해 주세요.')),
-      );
+      // 매칭 확정에 실패한 경우
+      else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('매칭 확정에 실패했습니다. 다시 시도해 주세요.')),
+        );
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,7 +82,7 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
       );
     } finally {
       if (mounted) {
-        setState(() => _isSubmitting = false);
+        setState(() => _isSubmitting = false); //원상 복귀해두기
       }
     }
   }
@@ -134,7 +164,7 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
                 children: [
                   // 안내 텍스트
                   const Text(
-                    '블루투스를 켜서\ 동승자를 확인하세요',
+                    '블루투스를 켜서\n 동승자를 확인하세요',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -147,13 +177,17 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
                     width: double.infinity,
                     height: 60,
                     child: ElevatedButton(
-                      onPressed: _isSubmitting ? null : _onConfirmMatch,
+                      onPressed: _canCompleteMatch ? _onConfirmMatch : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xffFFF200), // 형광 노란색
-                        foregroundColor: Colors.black, // 글자 색상
+                        backgroundColor: const Color(0xffFFF200),
+                        foregroundColor: Colors.black,
+                        disabledBackgroundColor:
+                            const Color(0xffFFF200).withValues(alpha: 0.45),
+                        disabledForegroundColor:
+                            Colors.black.withValues(alpha: 0.45),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16), // 둥근 모서리
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                       child: _isSubmitting

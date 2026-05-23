@@ -24,7 +24,7 @@ class DangretelApp extends StatelessWidget {
       title: '단곰이와 그레텔',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: const Color(0xFF3F51B5),
+        primaryColor: const Color(0xFF2C55A1),
         scaffoldBackgroundColor: Colors.white,
       ),
       home: const AuthHeaderPage(),

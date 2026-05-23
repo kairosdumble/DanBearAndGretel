@@ -33,6 +33,7 @@ class ZeroMateScreen extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: MateCard(
+                    reservationId: -1,//생성되지 않은 예약이므로 임시로 -1로 설정
                     start: item["start"]!,
                     end: item["end"]!,
                     time: item["time"]!,

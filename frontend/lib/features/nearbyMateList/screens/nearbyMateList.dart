@@ -5,7 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:frontend/core/auth/auth_token_storage.dart';
-import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
+import 'package:frontend/features/chat/screens/mateChatScreen.dart';
 import 'package:frontend/features/nearbyMateDetail/screens/NearbyMateDetail.dart';
 
 class NearbyMateList extends StatefulWidget {
@@ -195,9 +195,13 @@ class _NearbyMateListState extends State<NearbyMateList> {
                       ),
                       trailing: ElevatedButton(
                         onPressed: () {
+                          final id = row['id'];
+                          if (id == null) return;
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const MateChatScreen(),
+                              builder: (_) => MateChatScreen(
+                                reservationId: id is int ? id : int.parse(id.toString()),
+                              ),
                             ),
                           );
                         },

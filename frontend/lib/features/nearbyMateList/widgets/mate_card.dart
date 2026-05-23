@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
+import 'package:frontend/features/chat/screens/mateChatScreen.dart';
 
 class MateCard extends StatelessWidget {
+  final int reservationId;
   final String start;
   final String end;
   final String time;
@@ -9,6 +10,7 @@ class MateCard extends StatelessWidget {
 
   const MateCard({
     super.key,
+    required this.reservationId,
     required this.start,
     required this.end,
     required this.time,
@@ -39,7 +41,9 @@ class MateCard extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const MateChatScreen(),
+                    builder: (_) => MateChatScreen(
+                      reservationId: reservationId,
+                    ),
                   ),
                 );
               },

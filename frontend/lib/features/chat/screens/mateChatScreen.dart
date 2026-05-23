@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/features/bluetooth/screens/bluetoothConnect.dart';
 import 'package:frontend/features/bluetooth/services/proximity_match_api.dart';
 import 'package:frontend/features/nearbyMateList/screens/nearbyMateList.dart';
-
+//[TODO] 나중에 isMatching/Matched 상태 성리 필요
 class MateChatScreen extends StatefulWidget {
   final int reservationId;
 
@@ -19,7 +19,21 @@ class MateChatScreen extends StatefulWidget {
 class _MateChatScreenState extends State<MateChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final List<_ChatEntry> _messages = [];
-  bool _isMatching = false;
+
+  /// null: DB 조회 중, true/false: reservation_participants 존재 여부
+  bool? _isMatching;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMatchingStatus();
+  }
+
+  Future<void> _loadMatchingStatus() async {
+    final exists = await ProximityMatchApi.get(widget.reservationId);
+    if (!mounted) return;
+    setState(() => _isMatching = exists);
+  }
 
   @override
   void dispose() {
@@ -331,7 +345,7 @@ class _MessageProfileCircle extends StatelessWidget {
 }
 
 class _MatchingButtons extends StatelessWidget {
-  final bool isMatching;
+  final bool? isMatching;
   final VoidCallback onMatch;
   final VoidCallback onCancelMatch;
 
@@ -343,6 +357,7 @@ class _MatchingButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final matched = isMatching == true;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
       child: Row(
@@ -351,9 +366,10 @@ class _MatchingButtons extends StatelessWidget {
           SizedBox(
             height: 34,
             child: ElevatedButton(
-              onPressed: isMatching ? onCancelMatch : onMatch,
+              onPressed:
+                  isMatching == null ? null : (matched ? onCancelMatch : onMatch),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isMatching
+                backgroundColor: matched
                     ? const Color(0xFF8A8A8A)
                     : MateChatScreen._primaryBlue,
                 foregroundColor: Colors.white,
@@ -364,7 +380,7 @@ class _MatchingButtons extends StatelessWidget {
                 ),
               ),
               child: Text(
-                isMatching ? '매칭 취소' : '매칭 하기',
+                matched ? '매칭 취소' : '매칭 하기',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
