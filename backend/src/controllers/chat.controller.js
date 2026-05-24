@@ -19,6 +19,27 @@ function writeSse(res, event, data) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
+function getOnlineParticipants(reservationId) {
+  const clients = streamClientsByReservation.get(String(reservationId));
+  if (!clients) return [];
+
+  const participantsByUserId = new Map();
+  for (const client of clients) {
+    participantsByUserId.set(String(client.user.id), client.user);
+  }
+  return Array.from(participantsByUserId.values());
+}
+
+function broadcastPresence(reservationId) {
+  const clients = streamClientsByReservation.get(String(reservationId));
+  if (!clients) return;
+
+  const participants = getOnlineParticipants(reservationId);
+  for (const client of clients) {
+    writeSse(client.res, "presence", { participants });
+  }
+}
+
 function addStreamClient(reservationId, client) {
   const key = String(reservationId);
   const clients = streamClientsByReservation.get(key) || new Set();
@@ -29,12 +50,15 @@ function addStreamClient(reservationId, client) {
   client.pingInterval = pingInterval;
   clients.add(client);
   streamClientsByReservation.set(key, clients);
+  broadcastPresence(reservationId);
 
   client.req.on("close", () => {
     clearInterval(client.pingInterval);
     clients.delete(client);
     if (clients.size === 0) {
       streamClientsByReservation.delete(key);
+    } else {
+      broadcastPresence(reservationId);
     }
   });
 }
@@ -109,6 +133,11 @@ async function streamReservationMessages(req, res) {
     return res.status(400).json({ message: "Invalid reservation id." });
   }
 
+  const user = await chatService.getUserById(req.user.id);
+  if (!user) {
+    return res.status(401).json({ message: "User not found." });
+  }
+
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -119,6 +148,7 @@ async function streamReservationMessages(req, res) {
     req,
     res,
     userId: req.user.id,
+    user,
   });
 }
 

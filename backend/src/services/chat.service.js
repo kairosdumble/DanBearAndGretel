@@ -1,6 +1,16 @@
 const pool = require("../db/pool");
 
 const chatService = {
+  getUserById: async (userId) => {
+    const query = `
+      SELECT id, name, email
+      FROM users
+      WHERE id = $1;
+    `;
+    const { rows } = await pool.query(query, [userId]);
+    return rows[0] || null;
+  },
+
   getMessagesByReservationId: async (reservationId, userId) => {
     const query = `
       SELECT

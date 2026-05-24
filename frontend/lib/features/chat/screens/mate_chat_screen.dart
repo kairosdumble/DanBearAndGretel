@@ -23,12 +23,14 @@ class _MateChatScreenState extends State<MateChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<_ChatEntry> _messages = [];
+  final List<_ChatParticipant> _participants = [];
   final Set<String> _messageIds = {};
   bool _loading = true;
   bool _sending = false;
   String? _error;
   http.Client? _streamClient;
   StreamSubscription<String>? _streamSubscription;
+  String? _streamEventName;
   bool _disposed = false;
 
   @override
@@ -228,26 +230,64 @@ class _MateChatScreenState extends State<MateChatScreen> {
   }
 
   void _handleStreamLine(String line) {
+    if (line.startsWith('event: ')) {
+      _streamEventName = line.substring(7).trim();
+      return;
+    }
+
     if (!line.startsWith('data: ')) {
       return;
     }
 
     try {
+      final eventName = _streamEventName;
+      _streamEventName = null;
       final decoded = jsonDecode(line.substring(6));
-      if (decoded is! Map || decoded['message'] == null) {
+
+      if (eventName == 'presence') {
+        _handlePresenceEvent(decoded);
         return;
       }
 
-      final entry = _ChatEntry.fromJson(Map<String, dynamic>.from(decoded));
-      if (!mounted || entry.text.isEmpty) return;
+      if (eventName == 'message') {
+        if (decoded is! Map || decoded['message'] == null) {
+          return;
+        }
 
-      setState(() {
-        _addMessage(entry);
-      });
-      _scrollToBottom();
+        final entry = _ChatEntry.fromJson(Map<String, dynamic>.from(decoded));
+        if (!mounted || entry.text.isEmpty) return;
+
+        setState(() {
+          _addMessage(entry);
+        });
+        _scrollToBottom();
+      }
     } catch (_) {
       return;
     }
+  }
+
+  void _handlePresenceEvent(dynamic decoded) {
+    if (decoded is! Map || !mounted) {
+      return;
+    }
+
+    final list = decoded['participants'] is List
+        ? decoded['participants'] as List
+        : <dynamic>[];
+    final loaded = list
+        .whereType<Map>()
+        .map(
+          (entry) =>
+              _ChatParticipant.fromJson(Map<String, dynamic>.from(entry)),
+        )
+        .toList();
+
+    setState(() {
+      _participants
+        ..clear()
+        ..addAll(loaded);
+    });
   }
 
   void _addMessage(_ChatEntry entry) {
@@ -278,6 +318,7 @@ class _MateChatScreenState extends State<MateChatScreen> {
           children: [
             _ChatHeader(
               title: widget.title,
+              participants: _participants,
               onBack: () => Navigator.of(context).maybePop(),
             ),
             Expanded(
@@ -324,6 +365,32 @@ class _ChatEntry {
         (json['created_at'] ?? json['createdAt'])?.toString() ?? '',
       ),
     );
+  }
+}
+
+class _ChatParticipant {
+  final String id;
+  final String name;
+  final String email;
+
+  const _ChatParticipant({
+    required this.id,
+    required this.name,
+    required this.email,
+  });
+
+  factory _ChatParticipant.fromJson(Map<String, dynamic> json) {
+    return _ChatParticipant(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+    );
+  }
+
+  String get label {
+    final source = name.trim().isNotEmpty ? name.trim() : email.trim();
+    if (source.isEmpty) return '?';
+    return String.fromCharCode(source.runes.first).toUpperCase();
   }
 }
 
@@ -394,9 +461,14 @@ class _ChatMessageList extends StatelessWidget {
 
 class _ChatHeader extends StatelessWidget {
   final String? title;
+  final List<_ChatParticipant> participants;
   final VoidCallback onBack;
 
-  const _ChatHeader({required this.title, required this.onBack});
+  const _ChatHeader({
+    required this.title,
+    required this.participants,
+    required this.onBack,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -407,29 +479,28 @@ class _ChatHeader extends StatelessWidget {
       child: Row(
         children: [
           _HeaderIconButton(icon: Icons.chevron_left, onTap: onBack),
-          const Spacer(),
-          const _ProfileCircle(borderColor: Color(0xFFD01818)),
-          const SizedBox(width: 10),
-          const _ProfileCircle(borderColor: Color(0xFFD01818)),
-          const SizedBox(width: 10),
-          const _ProfileCircle(borderColor: Colors.black),
-          if (title != null && title!.isNotEmpty) ...[
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                title!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _ParticipantProfileStrip(participants: participants),
+                if (title != null && title!.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    title!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ] else
-            const Spacer(),
+          ),
           const Icon(Icons.settings, color: Colors.white, size: 30),
         ],
       ),
@@ -460,20 +531,57 @@ class _HeaderIconButton extends StatelessWidget {
   }
 }
 
-class _ProfileCircle extends StatelessWidget {
-  final Color borderColor;
+class _ParticipantProfileStrip extends StatelessWidget {
+  final List<_ChatParticipant> participants;
 
-  const _ProfileCircle({required this.borderColor});
+  const _ParticipantProfileStrip({required this.participants});
+
+  @override
+  Widget build(BuildContext context) {
+    if (participants.isEmpty) {
+      return const SizedBox(height: 36);
+    }
+
+    return SizedBox(
+      height: 36,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final participant in participants) ...[
+              _ProfileCircle(participant: participant),
+              const SizedBox(width: 8),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileCircle extends StatelessWidget {
+  final _ChatParticipant participant;
+
+  const _ProfileCircle({required this.participant});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 46,
-      height: 46,
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
         color: const Color(0xFFE4E4E4),
         shape: BoxShape.circle,
-        border: Border.all(color: borderColor, width: 2),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        participant.label,
+        style: const TextStyle(
+          color: Colors.black54,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
