@@ -87,9 +87,7 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("회원가입", style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: Colors.white, elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20.0),
@@ -137,8 +135,7 @@ class _SignupScreenState extends State<SignupScreen> {
             Text("비밀번호", style: TextStyle(fontWeight: FontWeight.bold)),
             TextField(
               controller: _passwordController,
-              obscureText: true, // 비밀번호 가리기
-              decoration: InputDecoration(suffixIcon: Icon(Icons.visibility_off)),
+              obscureText: false, // 비밀번호 가리기
             ),
             
             SizedBox(height: 100),

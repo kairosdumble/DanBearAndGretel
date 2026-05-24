@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/core/auth/auth_token_storage.dart';
+import 'package:frontend/features/auth/screens/auth_header.dart';
+import 'package:frontend/features/auth/screens/login.dart';
 import 'settingEditScreen.dart'; 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -177,7 +179,6 @@ class _SettingScreenState extends State<SettingScreen> {
   Widget _buildSettingList() {
     return Column(
       children: [
-        // 얇은 구분선
         Divider(thickness: 8, color: Colors.grey[100]),
         
         _buildListTile(
@@ -193,17 +194,22 @@ class _SettingScreenState extends State<SettingScreen> {
         
         _buildListTile(
           title: '로그아웃',
-          onTap: () {
-            // TODO: 로그아웃 로직 구현
+          titleColor: const Color(0xFF3F51B5),
+          onTap: () async {
+            await AuthTokenStorage.clearToken();
+
+            if (context.mounted) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AuthHeaderPage(),
+                ),
+                (Route<dynamic> route) => false,
+              );
+            }
           },
         ),
-        _buildListTile(
-          title: '탈퇴하기',
-          titleColor: Colors.redAccent,
-          onTap: () {
-            // TODO: 회원탈퇴 로직 구현
-          },
-        ),
+        
       ],
     );
   }
