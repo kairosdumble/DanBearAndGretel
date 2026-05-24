@@ -261,9 +261,9 @@ class _MateChatScreenState extends State<MateChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
       );
     });
   }
@@ -271,6 +271,7 @@ class _MateChatScreenState extends State<MateChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
@@ -367,15 +368,26 @@ class _ChatMessageList extends StatelessWidget {
       );
     }
 
-    return ListView(
-      controller: scrollController,
-      padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
-      children: [
-        for (final message in messages) ...[
-          _ChatMessage(text: message.text, isMine: message.isMine),
-          const SizedBox(height: 8),
-        ],
-      ],
+    final reversedMessages = messages.reversed.toList();
+
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ListView.separated(
+          controller: scrollController,
+          reverse: true,
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
+          itemCount: reversedMessages.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final message = reversedMessages[index];
+            return _ChatMessage(text: message.text, isMine: message.isMine);
+          },
+        ),
+      ),
     );
   }
 }
