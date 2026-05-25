@@ -194,6 +194,7 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
                           ),
                         ),
                       ),
+                      /*
                       SizedBox(
                         height: 32,
                         child: ElevatedButton(
@@ -216,6 +217,7 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
                           ),
                         ),
                       ),
+                      */
                     ],
                   ),
                   const SizedBox(height: 12),

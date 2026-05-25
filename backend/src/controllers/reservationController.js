@@ -64,7 +64,7 @@ async function putReservation(req, res) {
 }
 
 // 예약 확정
-// - 블루투스 매칭 화면에서 클릭시 해당 사용자가 reservation_participants에 추가됨.
+// - 블루투스 매칭 화면에서 클릭시 해당 사용자가 reservation_bluetooth_participants에 추가됨.
 async function confirmProximityMatch(req, res) {
     try {
         const {reservation_id:reservationId} = req.params;
@@ -76,6 +76,9 @@ async function confirmProximityMatch(req, res) {
             Number(reservationId),
             userId
         );
+        if (!confirmed) {
+            return res.status(404).json({ message: "해당 예약을 찾을 수 없습니다." });
+        }
         res.status(200).json(confirmed);
     } catch (error) {
         res.status(500).json({ message: "예약 확정 중 오류 발생", error: error.message });
@@ -83,7 +86,7 @@ async function confirmProximityMatch(req, res) {
 }
 
 // 예약 취소
-// - 블루투스 매칭 화면에서 클릭시 해당 사용자가 reservation_participants에서 삭제됨.
+// - 블루투스 매칭 화면에서 클릭시 해당 사용자가 reservation_bluetooth_participants에서 삭제됨.
 async function cancelProximityMatch(req, res) {
     try {
         const {reservation_id:reservationId} = req.params;

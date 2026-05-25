@@ -44,27 +44,40 @@ CREATE INDEX IF NOT EXISTS idx_email_verifications_email_active ON email_verific
 
 -- 예약 정보
 CREATE TABLE IF NOT EXISTS reservations (
-    id SERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY, -- 예약 id
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- 예약자 id
     departure_location TEXT NOT NULL, -- 출발장소
     destination_location TEXT NOT NULL, -- 도착장소
     departure_time TIMESTAMP NOT NULL, -- 출발시간
+    -- 예약 상태
+    -- READY: 블루투스 전체 연결 전
+    -- RUNNING: 블루투스 전체 연결 후(택시 타는 동안)
+    -- COMPLETED: 최종하차자 하차 후
+    status TEXT NOT NULL DEFAULT 'READY' CHECK (status IN ('READY', 'RUNNING', 'COMPLETED')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 생성시간
 );
 
 -- 참여자 관리 테이블
-CREATE TABLE IF NOT EXISTS reservation_participants (
+CREATE TABLE IF NOT EXISTS reservation_bluetooth_participants (
+    reservation_id INTEGER REFERENCES reservations(id) ON DELETE CASCADE, -- 예약 항목 번호
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- 참여자 id
+    dropoff_completed BOOLEAN NOT NULL DEFAULT FALSE, -- 택시 하차여부부
+    PRIMARY KEY (reservation_id, user_id) -- 한 명의 사용자가 같은 예약에 중복 체크인 방지
+);
+
+CREATE TABLE IF NOT EXISTS reservation_chat_participants(
     reservation_id INTEGER REFERENCES reservations(id) ON DELETE CASCADE, -- 예약 항목 번호
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- 참여자 id
     PRIMARY KEY (reservation_id, user_id) -- 한 명의 사용자가 같은 예약에 중복 체크인 방지
 );
--- Reservation chat messages
+
+-- 예약 챗 메시지 테이블
 CREATE TABLE IF NOT EXISTS chat_messages (
-    id BIGSERIAL PRIMARY KEY,
-    reservation_id INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
-    sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    message TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id BIGSERIAL PRIMARY KEY, -- 메시지 고유 id
+    reservation_id INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE, -- 예약 항목 번호
+    sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- 보낸 사용자 id
+    message TEXT NOT NULL, -- 메시지 내용
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() -- 생성시간
 );
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_reservation_created

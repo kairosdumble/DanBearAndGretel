@@ -36,7 +36,7 @@ class _MateChatScreenState extends State<MateChatScreen> {
   StreamSubscription<String>? _streamSubscription;
   String? _streamEventName;
   bool _disposed = false;
-  bool? _isMatching; /// null: DB 조회 중, true/false: reservation_participants 존재 여부
+  bool? _isMatching; /// null: DB 조회 중, true/false: reservation_bluetooth_participants 존재 여부
   
 
   @override
