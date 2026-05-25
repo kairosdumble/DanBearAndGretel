@@ -19,15 +19,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // 로그인 통신 함수
   Future<void> _handleLogin() async {
+    Object? lastError;
     try {
-      final response = await http.post(
-        Uri.parse('${dotenv.env['BASE_URL']}/auth/login'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({
-          "email": _emailController.text,
-          "password": _passwordController.text,
-        }),
-      );
+      http.Response? response;
+      String? connectedBaseUrl;
+      final requestBody = json.encode({
+        "email": _emailController.text,
+        "password": _passwordController.text,
+      });
+
+      for (final baseUrl in _candidateBaseUrls()) {
+        try {
+          response = await http
+              .post(
+                Uri.parse('$baseUrl/auth/login'),
+                headers: {"Content-Type": "application/json"},
+                body: requestBody,
+              )
+              .timeout(const Duration(seconds: 5));
+          connectedBaseUrl = baseUrl;
+          break;
+        } catch (e) {
+          lastError = e;
+        }
+      }
+
+      if (response == null || connectedBaseUrl == null) {
+        throw Exception('서버에 연결할 수 없습니다. 마지막 오류: $lastError');
+      }
+
+      dotenv.env['BASE_URL'] = connectedBaseUrl;
 
       final result = json.decode(response.body);
 
@@ -41,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SnackBar(content: Text("로그인에 성공했습니다!")),
         );
         Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomePage()),
+          MaterialPageRoute(builder: (_) => const HomePage()),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -54,6 +75,15 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text("[로그인] 서버 통신 중 오류가 발생했습니다. error: $e")),
       );
     }
+  }
+
+  List<String> _candidateBaseUrls() {
+    final configured = dotenv.env['BASE_URL']?.trim();
+    return [
+      if (configured != null && configured.isNotEmpty) configured,
+      'http://10.0.2.2:3000',
+      'http://localhost:3000',
+    ].map((url) => url.replaceFirst(RegExp(r'/$'), '')).toSet().toList();
   }
 
   @override

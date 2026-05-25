@@ -175,6 +175,28 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
                       SizedBox(
                         height: 32,
                         child: ElevatedButton(
+                          onPressed: () {}, 
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE0E0E0),
+                            foregroundColor: Colors.black,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          child: const Text(
+                            '매칭내역',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 32,
+                        child: ElevatedButton(
                           onPressed: () {}, // 나~~~중에 여기서 이전 내역 이동 구현 하기
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE0E0E0),

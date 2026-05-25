@@ -58,3 +58,14 @@ CREATE TABLE IF NOT EXISTS reservation_participants (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- 참여자 id
     PRIMARY KEY (reservation_id, user_id) -- 한 명의 사용자가 같은 예약에 중복 체크인 방지
 );
+-- Reservation chat messages
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id BIGSERIAL PRIMARY KEY,
+    reservation_id INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+    sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_reservation_created
+    ON chat_messages (reservation_id, created_at, id);

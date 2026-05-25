@@ -4,6 +4,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const pool = require("./db/pool");
+const ensureChatSchema = require("./db/ensureChatSchema");
 const authRoutes = require("./routes/auth.routes");
 const rateLimit = require("express-rate-limit");
 
@@ -25,6 +26,11 @@ const authLimiter = rateLimit({
 if (!databaseUrl) {
   throw new Error("DATABASE_URL 환경변수가 설정되지 않았습니다.");
 }
+
+ensureChatSchema().catch((error) => {
+  // eslint-disable-next-line no-console
+  console.error("[chat schema]", error);
+});
 
 app.use(cors());
 app.use(express.json());
@@ -236,3 +242,5 @@ server.on("error", (err) => {
 
 const reservationRoutes = require('./routes/reservation.routes');
 app.use('/api/reservations', reservationRoutes);
+const chatRoutes = require('./routes/chat.routes');
+app.use('/api/chats', chatRoutes);
