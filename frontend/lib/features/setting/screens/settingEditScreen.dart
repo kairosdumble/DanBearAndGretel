@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:frontend/core/auth/auth_token_storage.dart';
 
 class SettingEditScreen extends StatefulWidget {
   const SettingEditScreen({Key? key}) : super(key: key);
@@ -8,32 +12,80 @@ class SettingEditScreen extends StatefulWidget {
 }
 
 class _SettingEditScreenState extends State<SettingEditScreen> {
-  // ---------------------------------------------------------
-  // [컨트롤러 및 상태 변수]
-  // ---------------------------------------------------------
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _accountController = TextEditingController();
-  final TextEditingController _verifyCodeController = TextEditingController();
 
   String _selectedBank = '카카오뱅크';
   final List<String> _bankList = ['카카오뱅크', '신한은행', '국민은행', '우리은행', '토스뱅크'];
 
-  bool _isVerifyCodeSent = false; // 인증번호 전송 여부
-  bool _isVerified = false;       // 인증 완료 여부
+  Future<void> _saveProfile() async {
+    try {
+      final token = await AuthTokenStorage.getToken();
+      final url = Uri.parse('${dotenv.env['BASE_URL']}/api/user/profile');
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'nickname': _nicknameController.text,
+          'bank_name': _selectedBank,
+          'account_number': _accountController.text,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("저장되었습니다!")));
+        Navigator.pop(context, true); // 설정 페이지로 성공 신호(true) 전달
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("저장 실패")));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("오류 발생: $e")));
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    // TODO: 화면 진입 시 기존 정보가 있다면 컨트롤러에 초기값으로 세팅
-    // _nicknameController.text = "기존 닉네임";
-    // _accountController.text = "기존 계좌번호";
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    try {
+      final token = await AuthTokenStorage.getToken();
+      final url = Uri.parse('${dotenv.env['BASE_URL']}/api/user/profile');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _nicknameController.text = data['nickname'] ?? '';
+          _accountController.text = data['account_number'] ?? '';
+          _selectedBank = data['bank_name'] ?? _selectedBank;
+        });
+      } else {
+        print("데이터 로드 실패: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("데이터 로드 중 오류 발생: $e");
+    }
   }
 
   @override
   void dispose() {
     _nicknameController.dispose();
     _accountController.dispose();
-    _verifyCodeController.dispose();
     super.dispose();
   }
 
@@ -57,25 +109,6 @@ class _SettingEditScreenState extends State<SettingEditScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context, {
-                'nickname': _nicknameController.text,
-                'bank': _selectedBank,
-                'account': _accountController.text,
-              });
-            },
-            child: const Text(
-              '변경 완료',
-              style: TextStyle(
-                color: Colors.blueAccent,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
@@ -107,7 +140,7 @@ class _SettingEditScreenState extends State<SettingEditScreen> {
             ),
             const SizedBox(height: 8),
             
-            // 은행 선택 + 계좌번호 입력 + 인증번호 전송 버튼
+            // 은행 선택 + 계좌번호 입력
             Row(
               children: [
                 _buildBankDropdown(),
@@ -121,74 +154,30 @@ class _SettingEditScreenState extends State<SettingEditScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            
-            // 인증번호 전송 버튼
+            const SizedBox(height: 50),
+
             SizedBox(
               width: double.infinity,
-              height: 48,
-              child: OutlinedButton(
+              height: 55,
+              child: ElevatedButton(
                 onPressed: () {
-                  setState(() {
-                    _isVerifyCodeSent = true;
-                    _isVerified = false; // 재전송 시 인증상태 초기화
-                  });
-                  // TODO: 서버로 인증번호 발송 API 호출
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('인증번호가 전송되었습니다.')),
-                  );
+                  // 여기에 서버로 정보를 보내는 _saveProfile() 함수를 연결하세요
+                  _saveProfile(); 
                 },
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.grey[300]!),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text('인증번호 전송', style: TextStyle(color: Colors.black87)),
+                style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3F51B5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text(
+                "저장하기", 
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
               ),
             ),
-
-            // 4. 인증번호 입력 폼 (전송 버튼을 누른 후에만 표시됨)
-            if (_isVerifyCodeSent) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _verifyCodeController,
-                      hintText: '인증번호를 입력해주세요',
-                      keyboardType: TextInputType.number,
-                      enabled: !_isVerified, // 인증 완료 시 입력 불가
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 80,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _isVerified
-                          ? null
-                          : () {
-                              setState(() {
-                                _isVerified = true;
-                              });
-                              // TODO: 서버로 인증번호 검증 API 호출
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('인증이 완료되었습니다.')),
-                              );
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isVerified ? Colors.grey : Colors.black87,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: Text(_isVerified ? '완료' : '확인', style: const TextStyle(color: Colors.white)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
         ),
       ),
-    );
+    );  
   }
 
   // ==========================================

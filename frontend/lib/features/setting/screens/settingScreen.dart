@@ -20,10 +20,11 @@ class _SettingScreenState extends State<SettingScreen> {
   // 나중에 API/로그인 정보로 채워질 데이터들입니다. 지금은 비워둡니다.
   // ---------------------------------------------------------
   String profileImageUrl = ""; // 프로필 이미지 URL
-  String userName = "";        // 예: 단곰
-  String nickname = "";        // 예: 익명123
-  String balance = "";         // 예: 10,000원
-  String accountInfo = "";     // 예: 카카오뱅크 1234-56-7890
+  String userName = "";
+  String nickname = "";   
+  String balance = "";
+  String bankName = "";
+  String accountNumber = "";
 
   @override
   void initState() {
@@ -33,16 +34,9 @@ class _SettingScreenState extends State<SettingScreen> {
 
   Future<void> _loadUserData() async {
     try {
-      String? token = await AuthTokenStorage.getToken();
-
-      if (token == null || token.isEmpty) {
-        print("저장된 토큰이 없습니다. 로그인 필요.");
-        return;
-      }
-      final url = Uri.parse('${dotenv.env['BASE_URL']}/api/user/profile'); // 백엔드 API 엔드포인트
-      
+      final token = await AuthTokenStorage.getToken();
       final response = await http.get(
-        url,
+        Uri.parse('${dotenv.env['BASE_URL']}/api/user/profile'), // 서버 주소 다시 확인!
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -52,15 +46,19 @@ class _SettingScreenState extends State<SettingScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          userName = data['name']; // 백엔드에서 보낸 필드명과 일치해야 함
+          // 서버에서 받아온 데이터를 화면용 변수에 저장
+          userName = data['name'];
+          nickname = data['nickname'] ?? "닉네임을 설정하세요";
+          balance = data['balance'] ?? 0;
+          bankName = data['bank_name'] ?? "";
+          accountNumber = data['account_number'] ?? "계좌를 등록하세요";
         });
-      } else {
-        print("데이터 로드 실패: ${response.statusCode}");
       }
     } catch (e) {
-      print("통신 에러: $e");
+      print("데이터 로드 에러: $e");
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -139,19 +137,8 @@ class _SettingScreenState extends State<SettingScreen> {
               context,
               MaterialPageRoute(builder: (context) => const SettingEditScreen()),
             );
-            // 2. 돌아온 데이터가 있다면 변수에 넣고 화면 새로고침 (setState)
-            if (result != null && result is Map<String, dynamic>) {
-              setState(() {
-                // 닉네임 업데이트 (빈 값이 아닐 때만)
-                if (result['nickname'] != null && result['nickname'].toString().isNotEmpty) {
-                  nickname = result['nickname'];
-                }
-                
-                // 계좌번호 업데이트 (빈 값이 아닐 때만)
-                if (result['account'] != null && result['account'].toString().isNotEmpty) {
-                  accountInfo = "${result['bank']} ${result['account']}";
-                }
-              });
+            if (result == true) {
+              await _loadUserData(); // 정보가 변경된 후 다시 데이터 로드
             }
           },
           style: OutlinedButton.styleFrom(
@@ -187,7 +174,14 @@ class _SettingScreenState extends State<SettingScreen> {
         ),
         _buildListTile(
           title: '출금 계좌',
-          trailingText: accountInfo,
+          trailingText: '$bankName $accountNumber',
+        ),
+        _buildListTile(
+          title: '충전하기',
+          titleColor: Colors.redAccent,
+          onTap: () {
+            // TODO: 충전 로직 구현
+          },
         ),
         
         Divider(thickness: 8, color: Colors.grey[100]),
