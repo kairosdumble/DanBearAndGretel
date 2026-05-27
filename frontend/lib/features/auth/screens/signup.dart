@@ -1,5 +1,4 @@
 //회원가입 구현 파일
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // 서버 통신을 위해 필요
 import 'dart:convert';
@@ -87,6 +86,9 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white, elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20.0),
         child: Column(
@@ -145,7 +147,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 suffixIcon: Icon(Icons.visibility_off),
               ),
             ),
-
+            
             SizedBox(height: 100),
 
             // 완료 버튼
