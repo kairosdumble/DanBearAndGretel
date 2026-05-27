@@ -1,6 +1,6 @@
 import 'dart:convert'; // JSON 인코딩/디코딩
 import 'package:flutter/material.dart';
-import 'package:frontend/features/auth/widgets/colors.dart'; // 색깔 통합
+import 'package:frontend/data/colors.dart'; // 색깔 통합
 import 'package:http/http.dart' as http; // 메일전송
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // .env 파일 로드용
 

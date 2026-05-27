@@ -81,77 +81,97 @@ class _NearbyMateListState extends State<NearbyMateList> {
     if (value == null) return '';
     final parsed = DateTime.tryParse(value.toString());
     if (parsed == null) return value.toString();
-    final d =
-        '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
-    final t =
-        '${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
-    return '$d $t';
+    final period = parsed.hour < 12 ? '오전' : '오후';
+    final hourOfPeriod = parsed.hour % 12;
+    final hour = hourOfPeriod == 0 ? 12 : hourOfPeriod;
+    final minute = parsed.minute == 0
+        ? ''
+        : ' ${parsed.minute.toString().padLeft(2, '0')}분';
+    return '$period $hour시$minute';
+  }
+
+  String _formatDepartureDate(dynamic value) {
+    if (value == null) return '';
+    final parsed = DateTime.tryParse(value.toString());
+    if (parsed == null) return '';
+    return '${parsed.year}년 ${parsed.month.toString().padLeft(2, '0')}월 ${parsed.day.toString().padLeft(2, '0')}일';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadReservations,
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.of(context).maybePop(),
                     child: Container(
-                      width: 36,
-                      height: 36,
+                      width: 44,
+                      height: 44,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFF1F1F1),
+                        color: Color(0xFFF2F3F5),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.arrow_back_ios_new, size: 18),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 24,
+                        color: Color(0xFF222222),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    '전체 예약',
+                    '주변 동승자',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(width: 48),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const NearbyMateDetail(),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2C55A1),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      minimumSize: const Size(100, 36),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text(
-                      '새 예약 생성',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                'DB 등록 예약 총 ${_reservations.length}건',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const NearbyMateDetail(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2C55A1),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    minimumSize: const Size(122, 34),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, size: 18),
+                      SizedBox(width: 6),
+                      Text(
+                        '새 예약 생성',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               if (_loading)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 48),
@@ -177,62 +197,129 @@ class _NearbyMateListState extends State<NearbyMateList> {
                   );
                   final dep = row['departure_location']?.toString() ?? '';
                   final dest = row['destination_location']?.toString() ?? '';
-                  final when = _formatDepartureTime(row['departure_time']);
-                  final bookerId = row['user_id']?.toString() ?? '-';
+                  final departureDate = _formatDepartureDate(
+                    row['departure_time'],
+                  );
+                  final departureTime = _formatDepartureTime(
+                    row['departure_time'],
+                  );
+                  final routeText = dep.isEmpty && dest.isEmpty
+                      ? '예약 장소 미정'
+                      : '$dep\n->$dest';
                   final chatTitle = dep.isEmpty && dest.isEmpty
-                      ? 'Reservation #${reservationId ?? bookerId}'
-                      : '$dep -> $dest';
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      title: Text(
-                        '$dep → $dest',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        when.isEmpty
-                            ? '예약자 #$bookerId · 출발 시간 미정'
-                            : '예약자 #$bookerId · 출발 $when',
-                      ),
-                      trailing: ElevatedButton(
-                        onPressed: reservationId == null
-                            ? null
-                            : () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => MateChatScreen(
-                                      reservationId: reservationId,
-                                      title: chatTitle,
-                                    ),
-                                  ),
-                                );
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2C55A1),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shadowColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          minimumSize: const Size(72, 36),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          '채팅',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
+                      ? 'Reservation #${reservationId ?? '-'}'
+                      : '$dep \n-> $dest';
+
+                  return _buildReservationCard(
+                    routeText: routeText,
+                    departureDate: departureDate,
+                    departureTime: departureTime,
+                    onChat: reservationId == null
+                        ? null
+                        : () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => MateChatScreen(
+                                  reservationId: reservationId,
+                                  title: chatTitle,
+                                ),
+                              ),
+                            );
+                          },
                   );
                 }),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildReservationCard({
+    required String routeText,
+    required String departureDate,
+    required String departureTime,
+    required VoidCallback? onChat,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.13),
+            blurRadius: 7,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  routeText,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.28,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF111111),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  departureDate.isEmpty ? '출발날짜: 미정' : '출발날짜: $departureDate',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.3,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF111111),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  departureTime.isEmpty ? '출발시간: 미정' : '출발시간:$departureTime',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.3,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF111111),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          SizedBox(
+            width: 52,
+            height: 42,
+            child: ElevatedButton(
+              onPressed: onChat,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2C55A1),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shadowColor: Colors.transparent,
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                '채팅',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

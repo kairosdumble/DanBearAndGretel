@@ -5,8 +5,11 @@ import 'package:http/http.dart' as http; // 서버 통신을 위해 필요
 import 'dart:convert';
 import 'package:frontend/features/auth/screens/auth_email.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // .env 파일 로드용
+import 'package:frontend/data/colors.dart';
 
 class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
+
   @override
   _SignupScreenState createState() => _SignupScreenState();
 }
@@ -19,10 +22,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   // 최종 회원가입 함수 (signup 호출)
-  
+
   Future<void> _submitSignup() async {
     final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
-  
+
     // 입력값 유효성 검사 (서버에 쏘기 전 프론트에서 컷!)
     if (_studentIdController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -56,16 +59,14 @@ class _SignupScreenState extends State<SignupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result?['message'] ?? "회원가입이 완료되었습니다.")),
         );
-        
+
         // 성공 시에만 0.5초 뒤 화면 닫기
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) Navigator.pop(context);
         });
-        
       } else {
         // 실패(400, 401, 500 등) 시에는 절대 pop을 하지 않습니다.
         String errorMessage = result?['message'] ?? "회원가입에 실패했습니다.";
-        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -86,11 +87,6 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text("회원가입", style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20.0),
         child: Column(
@@ -110,10 +106,14 @@ class _SignupScreenState extends State<SignupScreen> {
             Text("이메일", style: TextStyle(fontWeight: FontWeight.bold)),
             Row(
               children: [
-                Expanded(
-                  child: TextField(controller: _emailController),
-                ),
+                Expanded(child: TextField(controller: _emailController)),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   onPressed: () {
                     if (_emailController.text.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -127,7 +127,10 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                     );
                   },
-                  child: Text("인증하기"),
+                  child: Text(
+                    "인증하기",
+                    style: TextStyle(color: Color(0xFF2C55A1), fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -138,9 +141,11 @@ class _SignupScreenState extends State<SignupScreen> {
             TextField(
               controller: _passwordController,
               obscureText: true, // 비밀번호 가리기
-              decoration: InputDecoration(suffixIcon: Icon(Icons.visibility_off)),
+              decoration: InputDecoration(
+                suffixIcon: Icon(Icons.visibility_off),
+              ),
             ),
-            
+
             SizedBox(height: 100),
 
             // 완료 버튼
@@ -148,14 +153,19 @@ class _SignupScreenState extends State<SignupScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () async{
+                onPressed: () async {
                   await _submitSignup();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF3F51B5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  backgroundColor: AuthColors.bluePrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: Text("완료", style: TextStyle(color: Colors.white, fontSize: 18)),
+                child: Text(
+                  "완료",
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
               ),
             ),
           ],

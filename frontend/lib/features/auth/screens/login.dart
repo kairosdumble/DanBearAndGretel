@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/features/home/screens/home.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:frontend/data/colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -90,12 +91,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(backgroundColor: Colors.white, elevation: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SizedBox(height:32),
             const Text("이메일", style: TextStyle(fontWeight: FontWeight.bold)),
             TextField(
               controller: _emailController,
@@ -122,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   _handleLogin();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3F51B5),
+                  backgroundColor: AuthColors.bluePrimary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 child: const Text("로그인", style: TextStyle(color: Colors.white, fontSize: 16)),
