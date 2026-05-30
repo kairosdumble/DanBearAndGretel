@@ -18,7 +18,7 @@ class MateEmptyView extends StatelessWidget {
               fontSize: 20, 
               fontWeight: FontWeight.bold, 
               color: Colors.black87,
-              height: 1.5, // 줄간격 조절로 가독성 업!
+              height: 1.5,
             ),
           ),
           const SizedBox(height: 40),

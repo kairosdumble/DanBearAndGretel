@@ -4,7 +4,6 @@ import 'package:frontend/features/auth/screens/auth_header.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';// env 파일을 읽기 위해 필요
 import 'package:frontend/features/auth/screens/login.dart';
 import 'package:frontend/features/auth/screens/signup.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
