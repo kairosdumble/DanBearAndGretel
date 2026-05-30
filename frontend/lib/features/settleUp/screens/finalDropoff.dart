@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/features/chat/screens/mateChatScreen.dart';
 import 'dart:io'; // 파일 처리를 위해 필요
-// import 'package:image_picker/image_picker.dart'; // 사진 선택 기능을 위해 필요 (패키지 설치 후 주석 해제)
+// import 'package:image_picker/image_picker.dart'; // 사진 선택 기능을 위해 필요
 
 class FinalDropoffScreen extends StatefulWidget {
   final Map<String, dynamic> matchData;
@@ -37,11 +38,11 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             const Center(
               child: Icon(Icons.check_circle, color: Color(0xFF3F51B5), size: 80),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
             const Center(
               child: Text("동승자 매칭이 완료되었습니다!\n하차시 정산을 위해 미터기 사진을 찍어주세요.", 
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -53,7 +54,24 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
             Center(
               child: OutlinedButton.icon(
                 onPressed: () {
-                  // TODO: 채팅방 이동 로직
+                  // 채팅방 이동 로직
+                  final int resId = widget.matchData['id'] ?? 0; 
+  
+                  if (resId != 0) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                      builder: (context) => MateChatScreen(
+                      reservationId: resId, 
+                      title: "동승자 채팅방",
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("채팅방 정보를 찾을 수 없습니다.")),
+                );
+              }
                 },
                 icon: const Icon(Icons.chat_bubble_outline, size: 18),
                 label: const Text("해당 채팅방으로 이동하기"),
@@ -68,11 +86,11 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
             // 정보 표시 박스
             _buildInfoCard(departure, destination, fare),
             
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
             
             // 미터기 사진 업로드 영역 추가
             _buildPhotoUploadArea(),
-            const Spacer(),
+            const SizedBox(height: 20),
 
             // 정산하기 버튼
             SizedBox(
@@ -80,7 +98,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
               height: 55,
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: 정산 로직 및 팝업 호출
+                  // TODO: 정산 로직
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF3F51B5),
@@ -136,7 +154,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
 
   Widget _buildInfoCard(String dep, String dest, int fare) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
