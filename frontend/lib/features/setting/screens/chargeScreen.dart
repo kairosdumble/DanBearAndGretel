@@ -79,7 +79,7 @@ class _ChargeScreenState extends State<chargeScreen> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                labelText: "충전 금액 (원)",
+                labelText: "직접 입력 (원)",
               ),
             ),
             const Spacer(),
