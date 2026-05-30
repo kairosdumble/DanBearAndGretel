@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/features/chat/screens/mateChatScreen.dart';
 
 class MateCard extends StatelessWidget {
+  final int reservationId;
   final String start;
   final String end;
   final String time;
@@ -8,6 +10,7 @@ class MateCard extends StatelessWidget {
 
   const MateCard({
     super.key,
+    required this.reservationId,
     required this.start,
     required this.end,
     required this.time,
@@ -26,23 +29,37 @@ class MateCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow("출발지", start),
-          _buildInfoRow("도착지", end),
-          _buildInfoRow("출발시간", time),
-          _buildInfoRow("예상 금액", price),
+          _buildInfoRow('출발지', start),
+          _buildInfoRow('도착지', end),
+          _buildInfoRow('출발시간', time),
+          _buildInfoRow('예상 금액', price),
           const SizedBox(height: 15),
           SizedBox(
             width: double.infinity,
             height: 45,
             child: ElevatedButton(
               onPressed: () {
-                // 채팅하기 로직
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MateChatScreen(
+                      reservationId: reservationId,
+                    ),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3F51B5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-              child: const Text("채팅하기", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                '채팅하기',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -50,12 +67,11 @@ class MateCard extends StatelessWidget {
     );
   }
 
-  // 반복되는 텍스트 줄을 위한 작은 위젯
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Text(
-        "$label: $value",
+        '$label: $value',
         style: const TextStyle(fontSize: 14, color: Colors.black87),
       ),
     );

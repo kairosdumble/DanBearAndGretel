@@ -1,46 +1,30 @@
 const pool = require("../db/pool");
 
+//
 const reservationService = {
     // [CREATE] 새 예약 등록
     createReservation: async (userId, reservationData) => {
         const { departure_location, destination_location, departure_time } = reservationData;
-        const client = await pool.connect();
-        try {
-            await client.query("BEGIN");
-            const insertRes = await client.query(
-                `
-            INSERT INTO reservations (user_id, departure_location, destination_location, departure_time)
-            VALUES ($1, $2, $3, $4)
+        const query = `
+            INSERT INTO reservations (
+                user_id,
+                departure_location,
+                destination_location,
+                departure_time,
+                status
+            )
+            VALUES ($1, $2, $3, $4, 'READY')
             RETURNING *;
-            `,
-                [userId, departure_location, destination_location, departure_time],
-            );
-            const row = insertRes.rows[0];
-            await client.query(
-                `
-            INSERT INTO reservation_participants (reservation_id, user_id)
-            VALUES ($1, $2);
-            `,
-                [row.id, userId],
-            );
-            await client.query("COMMIT");
-            return row;
-        } catch (err) {
-            try {
-                await client.query("ROLLBACK");
-            } catch {
-                /* 연결 오류 시 무시 */
-            }
-            throw err;
-        } finally {
-            client.release();
-        }
+        `;
+        const values = [userId, departure_location, destination_location, departure_time];
+        const { rows } = await pool.query(query, values);
+        return rows[0];
     },
     // 예약당 참여자 등록
     registerReservation: async (userId, reservationData) => {
         const { reservation_id, user_id} = reservationData;
         const query = `
-            INSERT INTO reservation_participants (reservation_id, user_id)
+            INSERT INTO reservation_bluetooth_participants (reservation_id, user_id)
             VALUES ($1, $2)
             RETURNING *;
         `;
