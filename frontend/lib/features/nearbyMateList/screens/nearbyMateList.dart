@@ -6,10 +6,14 @@ import 'package:http/http.dart' as http;
 
 import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/features/chat/screens/mateChatScreen.dart';
+import 'package:frontend/features/home/screens/place.dart';
 import 'package:frontend/features/nearbyMateDetail/screens/NearbyMateDetail.dart';
 
 class NearbyMateList extends StatefulWidget {
-  const NearbyMateList({super.key});
+  const NearbyMateList({super.key, this.departure, this.destination});
+
+  final Place? departure;
+  final Place? destination;
 
   @override
   State<NearbyMateList> createState() => _NearbyMateListState();
@@ -31,6 +35,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
       _loading = true;
       _error = null;
     });
+
     try {
       final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
       final token = await AuthTokenStorage.getToken();
@@ -44,8 +49,9 @@ class _NearbyMateListState extends State<NearbyMateList> {
         return;
       }
 
+      final uri = _reservationsUri(baseUrl);
       final response = await http.get(
-        Uri.parse('$baseUrl/api/reservations/all'),
+        uri,
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -56,7 +62,8 @@ class _NearbyMateListState extends State<NearbyMateList> {
         final list = decoded is List ? decoded : <dynamic>[];
         setState(() {
           _reservations = list
-              .map((e) => Map<String, dynamic>.from(e as Map))
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
               .toList();
           _loading = false;
         });
@@ -77,6 +84,21 @@ class _NearbyMateListState extends State<NearbyMateList> {
     }
   }
 
+  Uri _reservationsUri(String baseUrl) {
+    final departure = widget.departure;
+    final uri = Uri.parse('$baseUrl/api/reservations/all');
+    if (departure == null) {
+      return uri;
+    }
+
+    return uri.replace(
+      queryParameters: {
+        'lat': departure.latitude.toString(),
+        'lng': departure.longitude.toString(),
+      },
+    );
+  }
+
   String _formatDepartureTime(dynamic value) {
     if (value == null) return '';
     final parsed = DateTime.tryParse(value.toString());
@@ -88,8 +110,26 @@ class _NearbyMateListState extends State<NearbyMateList> {
     return '$d $t';
   }
 
+  String? _formatDistance(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    final meters = num.tryParse(value.toString());
+    if (meters == null) {
+      return null;
+    }
+
+    if (meters >= 1000) {
+      return '${(meters / 1000).toStringAsFixed(2)}km 떨어진 출발지';
+    }
+    return '${meters.round()}m 떨어진 출발지';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final sortedByDistance = widget.departure != null;
+
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
@@ -112,16 +152,23 @@ class _NearbyMateListState extends State<NearbyMateList> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    '전체 예약',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      sortedByDistance ? '가까운 동승자' : '전체 예약',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 48),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const NearbyMateDetail(),
+                          builder: (_) => NearbyMateDetail(
+                            initialDeparture: widget.departure,
+                            initialDestination: widget.destination,
+                          ),
                         ),
                       );
                     },
@@ -130,14 +177,14 @@ class _NearbyMateListState extends State<NearbyMateList> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shadowColor: Colors.transparent,
-                      minimumSize: const Size(100, 36),
+                      minimumSize: const Size(92, 36),
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     child: const Text(
-                      '새 예약 생성',
+                      '예약 생성',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -148,7 +195,9 @@ class _NearbyMateListState extends State<NearbyMateList> {
               ),
               const SizedBox(height: 8),
               Text(
-                'DB 등록 예약 총 ${_reservations.length}건',
+                sortedByDistance
+                    ? '${widget.departure!.name} 기준 가까운 순서'
+                    : 'DB 등록 예약 총 ${_reservations.length}건',
                 style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
               ),
               const SizedBox(height: 16),
@@ -179,9 +228,17 @@ class _NearbyMateListState extends State<NearbyMateList> {
                   final dest = row['destination_location']?.toString() ?? '';
                   final when = _formatDepartureTime(row['departure_time']);
                   final bookerId = row['user_id']?.toString() ?? '-';
+                  final distance = _formatDistance(row['distance_meters']);
                   final chatTitle = dep.isEmpty && dest.isEmpty
                       ? 'Reservation #${reservationId ?? bookerId}'
                       : '$dep -> $dest';
+
+                  final subtitleParts = [
+                    ?distance,
+                    if (when.isNotEmpty) '출발 $when' else '출발 시간 미정',
+                    '예약자 #$bookerId',
+                  ];
+
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
@@ -190,11 +247,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      subtitle: Text(
-                        when.isEmpty
-                            ? '예약자 #$bookerId · 출발 시간 미정'
-                            : '예약자 #$bookerId · 출발 $when',
-                      ),
+                      subtitle: Text(subtitleParts.join(' · ')),
                       trailing: ElevatedButton(
                         onPressed: reservationId == null
                             ? null
