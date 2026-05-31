@@ -44,3 +44,19 @@ exports.updateUserProfile = async (req, res) => {
         res.status(500).json({ message: '서버 오류' });
     }
 };
+
+exports.chargeBalance = async (req, res) => {
+    try {
+        const { amount } = req.body;
+        const userId = req.user.id;
+        
+        // 잔액 업데이트
+        const query = `UPDATE users SET balance = balance + $1 WHERE id = $2 RETURNING balance`;
+        const result = await pool.query(query, [amount, userId]);
+        
+        res.status(200).json({ newBalance: result.rows[0].balance });
+    } catch (error) {
+        console.error("충전 에러:", error);
+        res.status(500).json({ message: "충전 실패" });
+    }
+};

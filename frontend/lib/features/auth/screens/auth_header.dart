@@ -3,9 +3,11 @@
 
 // frontend/lib/features/auth/screens/auth_header.dart
 import 'package:flutter/material.dart';
+import 'package:frontend/data/colors.dart';
+
 import 'login.dart';
 import 'signup.dart';
-import 'package:frontend/data/colors.dart';
+
 
 class AuthHeaderPage extends StatelessWidget {
   const AuthHeaderPage({super.key});
@@ -42,7 +44,7 @@ class AuthHeaderPage extends StatelessWidget {
             ),
           ),
         ),
-        body: const TabBarView(children: [LoginScreen(), SignupScreen()]),
+        body: TabBarView(children: [LoginScreen(), SignupScreen()]),
       ),
     );
   }

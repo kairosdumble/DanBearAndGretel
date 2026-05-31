@@ -4,15 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+import 'place.dart';
+import 'tmap_view.dart';
+
 import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/core/widgets/SearchBoxButton.dart';
 
 import '../../nearbyMateList/screens/nearbyMateList.dart';
 import '../../nearbyMateList/screens/zeroMate.dart';
 import '../../routeSearch/screens/placeSearchPage.dart';
-import 'place.dart';
-import 'tmap_view.dart';
+import '../../settlement/screens/finalDropoff.dart';
+import '../../settlement/screens/intermediateDropoff.dart';
 import '../../setting/screens/settingScreen.dart';
+
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -114,6 +119,11 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
   @override
   Widget build(BuildContext context) {
     final canFindMate = _departure != null && _destination != null; // 출발지, 목적지 입력 완료시 동승자 찾기 버튼 활성화
+    final matchData = {
+      'departure': _departure?.name ?? '출발지 정보 없음',
+      'destination': _destination?.name ?? '목적지 정보 없음',
+      'fare': 100000000, // [TODO] 실제 요금 계산 로직 필요
+    };
     return Scaffold(
       body: Stack(
         children: [
@@ -176,7 +186,14 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
                       SizedBox(
                         height: 32,
                         child: ElevatedButton(
-                          onPressed: () {}, 
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => 
+                                const FinalDropoffScreen(key: null, matchData: {'departure': '단국대', 'destination': '연세대', 'fare': 100000000})),
+                                //const IntermediateDropoffScreen(matchData: null,)),
+                            );
+                          }, 
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE0E0E0),
                             foregroundColor: Colors.black,

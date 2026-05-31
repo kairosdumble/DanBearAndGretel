@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/features/auth/screens/auth_header.dart';
-import 'package:frontend/features/auth/screens/login.dart';
 import 'settingEditScreen.dart'; 
+import 'chargeScreen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -179,8 +179,16 @@ class _SettingScreenState extends State<SettingScreen> {
         _buildListTile(
           title: '충전하기',
           titleColor: Colors.redAccent,
-          onTap: () {
-            // TODO: 충전 로직 구현
+          onTap: () async {
+            final isCharged = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const chargeScreen()),
+            );
+    
+            // 2. 충전 완료하고 돌아오면 잔액 갱신
+            if (isCharged == true) {
+              await _loadUserData();
+            }
           },
         ),
         
