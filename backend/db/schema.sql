@@ -84,6 +84,7 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_reservation_created
     ON chat_messages (reservation_id, created_at, id);
 
 ALTER TABLE reservations
+    ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'READY' CHECK (status IN ('READY', 'RUNNING', 'COMPLETED')),
     ADD COLUMN IF NOT EXISTS departure_lat DOUBLE PRECISION,
     ADD COLUMN IF NOT EXISTS departure_lng DOUBLE PRECISION,
     ADD COLUMN IF NOT EXISTS destination_lat DOUBLE PRECISION,

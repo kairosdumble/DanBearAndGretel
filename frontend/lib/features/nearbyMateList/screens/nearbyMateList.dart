@@ -103,10 +103,11 @@ class _NearbyMateListState extends State<NearbyMateList> {
     if (value == null) return '';
     final parsed = DateTime.tryParse(value.toString());
     if (parsed == null) return value.toString();
+    final local = parsed.toLocal();
     final d =
-        '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+        '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
     final t =
-        '${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+        '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
     return '$d $t';
   }
 
@@ -227,16 +228,14 @@ class _NearbyMateListState extends State<NearbyMateList> {
                   final dep = row['departure_location']?.toString() ?? '';
                   final dest = row['destination_location']?.toString() ?? '';
                   final when = _formatDepartureTime(row['departure_time']);
-                  final bookerId = row['user_id']?.toString() ?? '-';
                   final distance = _formatDistance(row['distance_meters']);
                   final chatTitle = dep.isEmpty && dest.isEmpty
-                      ? 'Reservation #${reservationId ?? bookerId}'
+                      ? 'Reservation #${reservationId ?? ''}'
                       : '$dep -> $dest';
 
                   final subtitleParts = [
                     ?distance,
                     if (when.isNotEmpty) '출발 $when' else '출발 시간 미정',
-                    '예약자 #$bookerId',
                   ];
 
                   return Card(

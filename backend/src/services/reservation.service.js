@@ -37,10 +37,9 @@ const reservationService = {
                 departure_lng,
                 destination_lat,
                 destination_lng,
-                departure_time,
-                status
+                departure_time
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'READY')
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *;
         `;
         const values = [
