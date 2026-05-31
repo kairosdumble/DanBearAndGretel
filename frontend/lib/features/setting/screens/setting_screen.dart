@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/features/auth/screens/auth_header.dart';
-import 'settingEditScreen.dart'; 
-import 'chargeScreen.dart';
+import 'setting_edit_screen.dart'; 
+import 'charge_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 

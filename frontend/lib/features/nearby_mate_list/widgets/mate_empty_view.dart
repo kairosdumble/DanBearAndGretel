@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../nearbyMateDetail/screens/nearbyMateDetail.dart';
+import '../../nearby_mate_detail/screens/nearby_mate_detail.dart';
 
 class MateEmptyView extends StatelessWidget {
   const MateEmptyView({super.key});

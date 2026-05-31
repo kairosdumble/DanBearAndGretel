@@ -5,7 +5,7 @@ import 'dart:io'; // 파일 처리를 위해 필요
 class FinalDropoffScreen extends StatefulWidget {
   final Map<String, dynamic> matchData;
 
-  const FinalDropoffScreen({Key? key, required this.matchData}) : super(key: key);
+  const FinalDropoffScreen({super.key, required this.matchData});
 
   @override
   State<FinalDropoffScreen> createState() => _FinalDropoffScreenState();
@@ -29,64 +29,66 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
 
      return Scaffold(
       backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            const Center(
-              child: Icon(Icons.check_circle, color: Color(0xFF3F51B5), size: 80),
-            ),
-            const SizedBox(height: 20),
-            const Center(
-              child: Text("동승자 매칭이 완료되었습니다!\n하차시 정산을 위해 미터기 사진을 찍어주세요.", 
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              const Center(
+                child: Icon(Icons.check_circle, color: Color(0xFF3F51B5), size: 80),
               ),
-            ),
-            const SizedBox(height: 15),
-            
-            Center(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: 채팅방 이동 로직
-                },
-                icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                label: const Text("해당 채팅방으로 이동하기"),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.black54,
-                  side: const BorderSide(color: Colors.black26),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              const SizedBox(height: 20),
+              const Center(
+                child: Text("동승자 매칭이 완료되었습니다!\n하차시 정산을 위해 미터기 사진을 찍어주세요.", 
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
                 ),
               ),
-            ),
-            const SizedBox(height: 25),
-            // 정보 표시 박스
-            _buildInfoCard(departure, destination, fare),
-            
-            const SizedBox(height: 25),
-            
-            // 미터기 사진 업로드 영역 추가
-            _buildPhotoUploadArea(),
-            const Spacer(),
+              const SizedBox(height: 15),
+              
+              Center(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    // TODO: 채팅방 이동 로직
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                  label: const Text("해당 채팅방으로 이동하기"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black54,
+                    side: const BorderSide(color: Colors.black26),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 25),
+              // 정보 표시 박스
+              _buildInfoCard(departure, destination, fare),
+              
+              const SizedBox(height: 25),
+              
+              // 미터기 사진 업로드 영역 추가
+              _buildPhotoUploadArea(),
+              const SizedBox(height: 24),
 
-            // 정산하기 버튼
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () {
-                  // TODO: 정산 로직 및 팝업 호출
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF3F51B5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              // 정산하기 버튼
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // TODO: 정산 로직 및 팝업 호출
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF3F51B5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text("정산하기", style: TextStyle(fontSize: 18, color: Colors.white)),
                 ),
-                child: const Text("정산하기", style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

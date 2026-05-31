@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/features/chat/screens/mateChatScreen.dart';
+import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
 
 class MateCard extends StatelessWidget {
   final int reservationId;

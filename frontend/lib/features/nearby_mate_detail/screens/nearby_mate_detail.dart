@@ -10,8 +10,8 @@ import 'package:frontend/core/widgets/SearchBoxButton.dart';
 import 'package:frontend/core/auth/auth_token_storage.dart';
 
 import 'package:frontend/features/home/screens/place.dart';
-import 'package:frontend/features/routeSearch/screens/placeSearchPage.dart';
-import 'package:frontend/features/nearbyMateList/screens/nearbyMateList.dart';
+import 'package:frontend/features/route_search/screens/placeSearchPage.dart';
+import 'package:frontend/features/nearby_mate_list/screens/nearby_mate_list.dart';
 
 class NearbyMateDetail extends StatefulWidget {
   //[TODO] 출발지, 목적지 정보 받아올 수 있도록 생성자 수정하기.

@@ -5,8 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:frontend/core/auth/auth_token_storage.dart';
-import 'package:frontend/features/chat/screens/mateChatScreen.dart';
-import 'package:frontend/features/nearbyMateDetail/screens/NearbyMateDetail.dart';
+import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
+import 'package:frontend/features/nearby_mate_detail/screens/nearby_mate_detail.dart';
 
 class NearbyMateList extends StatefulWidget {
   const NearbyMateList({super.key});

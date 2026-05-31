@@ -10,14 +10,12 @@ import 'tmap_view.dart';
 import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/core/widgets/SearchBoxButton.dart';
 
-import '../../nearbyMateList/screens/nearbyMateList.dart';
-import '../../nearbyMateList/screens/zeroMate.dart';
-import '../../routeSearch/screens/placeSearchPage.dart';
-import '../../settlement/screens/finalDropoff.dart';
-import '../../settlement/screens/intermediateDropoff.dart';
-import '../../setting/screens/settingScreen.dart';
-
-
+import '../../nearby_mate_list/screens/nearby_mate_list.dart';
+import '../../nearby_mate_list/screens/zero_mate.dart';
+import '../../route_search/screens/placeSearchPage.dart';
+import '../../settlement/screens/final_dropoff.dart';
+import '../../settlement/screens/intermediate_dropoff.dart';
+import '../../setting/screens/setting_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -190,7 +188,7 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
                             Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => 
-                                const FinalDropoffScreen(key: null, matchData: {'departure': '단국대', 'destination': '연세대', 'fare': 100000000})),
+                                FinalDropoffScreen(key: null, matchData: matchData)),
                                 //const IntermediateDropoffScreen(matchData: null,)),
                             );
                           }, 
