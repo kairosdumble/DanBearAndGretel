@@ -7,9 +7,9 @@ import 'package:http/http.dart' as http;
 
 import 'package:frontend/core/auth/auth_token_storage.dart';
 
-import 'package:frontend/features/bluetooth/screens/bluetoothConnect.dart';
+import 'package:frontend/features/bluetooth/screens/bluetooth_connect.dart';
 import 'package:frontend/features/bluetooth/services/proximity_match_api.dart';
-import 'package:frontend/features/nearbyMateList/screens/nearbyMateList.dart';
+import 'package:frontend/features/nearby_mate_list/screens/nearby_mate_list.dart';
 //[TODO] 나중에 isMatching/Matched 상태 성리 필요
 
 class MateChatScreen extends StatefulWidget {

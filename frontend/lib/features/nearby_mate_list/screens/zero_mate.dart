@@ -16,8 +16,8 @@ class ZeroMateScreen extends StatelessWidget {
       appBar: AppBar(
         leading: const BackButton(color: Colors.black),
         title: const Text(
-          "주변 동승자",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          "새 예약 생성",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
         ),
         backgroundColor: Colors.white,
         elevation: 0,

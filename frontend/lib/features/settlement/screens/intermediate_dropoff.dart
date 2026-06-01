@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
 
-class IntermediateDropoffScreen extends StatefulWidget {
+class IntermediateDropoffScreen extends StatelessWidget {
   final Map<String, dynamic>? matchData;
 
   const IntermediateDropoffScreen({
@@ -10,15 +9,10 @@ class IntermediateDropoffScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<IntermediateDropoffScreen> createState() => _IntermediateDropoffScreenState();
-}
-
-class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
-  @override
   Widget build(BuildContext context) {
-    final String departure = widget.matchData?['departure'] ?? '출발지 정보 없음';
-    final String destination = widget.matchData?['destination'] ?? '목적지 정보 없음';
-    final int fare = widget.matchData?['fare'] ?? 0;
+    final String departure = matchData?['departure'] ?? '출발지 정보 없음';
+    final String destination = matchData?['destination'] ?? '목적지 정보 없음';
+    final int fare = matchData?['fare'] ?? 0;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -41,24 +35,7 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
             Center(
               child: OutlinedButton.icon(
                 onPressed: () {
-                  // 채팅방 이동 로직
-                  final int resId = widget.matchData?['id'] ?? 0; 
-  
-                  if (resId != 0) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                      builder: (context) => MateChatScreen(
-                      reservationId: resId, 
-                      title: "동승자 채팅방",
-                    ),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("채팅방 정보를 찾을 수 없습니다.")),
-                );
-              }
+                  // TODO: 채팅방 이동 로직
                 },
                 icon: const Icon(Icons.chat_bubble_outline, size: 18),
                 label: const Text("해당 채팅방으로 이동하기"),
@@ -73,7 +50,7 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
             // 정보 표시 박스
             _buildInfoCard(departure, destination, fare),
             
-            const SizedBox(height: 25),
+            const Spacer(),
             
             // 정산하기 버튼
             SizedBox(
@@ -98,7 +75,7 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
 
   Widget _buildInfoCard(String dep, String dest, int fare) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12),

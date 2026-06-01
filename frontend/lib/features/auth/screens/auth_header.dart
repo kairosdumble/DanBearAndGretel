@@ -3,15 +3,17 @@
 
 // frontend/lib/features/auth/screens/auth_header.dart
 import 'package:flutter/material.dart';
+import 'package:frontend/data/colors.dart';
+
 import 'login.dart';
 import 'signup.dart';
+
 
 class AuthHeaderPage extends StatelessWidget {
   const AuthHeaderPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    
     return DefaultTabController(
       length: 2, // 로그인, 회원가입 2개
       child: Scaffold(
@@ -19,17 +21,22 @@ class AuthHeaderPage extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          toolbarHeight: 80,
-          title: const Align(
-            alignment: Alignment.bottomLeft,
+          toolbarHeight: 78,
+          titleSpacing: 0,
+          title: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 36),
             child: TabBar(
-              isScrollable: true,
-              labelColor: Color(0xFF3F51B5), // 선택 시 파란색
-              unselectedLabelColor: Colors.grey, // 비활성 시 회색
-              indicatorColor: Color(0xFF3F51B5), // 밑줄 색상
+              labelColor: AuthColors.bluePrimary, // 선택 시 파란색
+              unselectedLabelColor: AuthColors.gray, // 비활성 시 회색
+              indicatorColor: AuthColors.bluePrimary, // 밑줄 색상
               indicatorWeight: 3,
-              indicatorSize: TabBarIndicatorSize.label,
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: AuthColors.gray,
               labelStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              unselectedLabelStyle: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
               tabs: [
                 Tab(text: "로그인"),
                 Tab(text: "회원가입"),
@@ -37,13 +44,7 @@ class AuthHeaderPage extends StatelessWidget {
             ),
           ),
         ),
-        
-        body: TabBarView(
-          children: [
-            LoginScreen(),
-            SignupScreen(),
-          ],
-        ),
+        body: TabBarView(children: [LoginScreen(), SignupScreen()]),
       ),
     );
   }
