@@ -21,14 +21,13 @@ CREATE TABLE IF NOT EXISTS users (
   -- 메일 인증 완료 여부
   email_verified BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  ALTER TABLE users 
-  ADD COLUMN IF NOT EXISTS nickname VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR(255),
-  ADD COLUMN IF NOT EXISTS bank_name VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS account_number VARCHAR(100),
-  ADD COLUMN IF NOT EXISTS balance BIGINT DEFAULT 0;
+  nickname VARCHAR(50),
+  profile_image_url VARCHAR(255),
+  bank_name VARCHAR(50),
+  account_number VARCHAR(100),
+  balance BIGINT DEFAULT 0
 );
 
 -- 메일 검증 테이블
