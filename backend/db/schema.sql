@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS users (
   email_verified BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-
+  -- 프로필 이미지 URL
+  profile_image_url VARCHAR(512) NULL;
+  
   ALTER TABLE users 
   ADD COLUMN IF NOT EXISTS nickname VARCHAR(50),
   ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR(255),
@@ -68,10 +70,11 @@ CREATE TABLE IF NOT EXISTS reservations (
 CREATE TABLE IF NOT EXISTS reservation_bluetooth_participants (
     reservation_id INTEGER REFERENCES reservations(id) ON DELETE CASCADE, -- 예약 항목 번호
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- 참여자 id
-    dropoff_completed BOOLEAN NOT NULL DEFAULT FALSE, -- 택시 하차여부부
+    dropoff_completed BOOLEAN NOT NULL DEFAULT FALSE, -- 택시 하차여부
     PRIMARY KEY (reservation_id, user_id) -- 한 명의 사용자가 같은 예약에 중복 체크인 방지
 );
 
+-- 채팅방 참여하는 사람 테이블
 CREATE TABLE IF NOT EXISTS reservation_chat_participants(
     reservation_id INTEGER REFERENCES reservations(id) ON DELETE CASCADE, -- 예약 항목 번호
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- 참여자 id

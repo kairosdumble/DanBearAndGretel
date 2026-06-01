@@ -30,9 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.6.0
-  cupertino_icons: ^1.0.8
-  pinput: ^6.0.2
+  http: ^1.6.0 # http 패키지 추가
+  cupertino_icons: ^1.0.8 # iOS 스타일 아이콘 패키지
+  pinput: ^6.0.2 # 핀 입력 위젯 패키지
+  image_picker: ^1.1.0 # 이미지 저장용
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

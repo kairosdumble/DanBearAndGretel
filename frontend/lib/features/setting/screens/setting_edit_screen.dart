@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/core/auth/auth_token_storage.dart';
+import 'package:frontend/features/setting/services/images/profile_upload_api.dart';
+import 'package:image_picker/image_picker.dart';
 
 class SettingEditScreen extends StatefulWidget {
   const SettingEditScreen({Key? key}) : super(key: key);
@@ -14,17 +17,23 @@ class SettingEditScreen extends StatefulWidget {
 class _SettingEditScreenState extends State<SettingEditScreen> {
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _accountController = TextEditingController();
+  final ProfileUploadAPI _profileUploadAPI = ProfileUploadAPI();
+  final ImagePicker _imagePicker = ImagePicker();
+
+  String? _profileImageUrl;
+  File? _selectedImageFile;
+  bool _isUploadingImage = false;
 
   String _selectedBank = '카카오뱅크';
   final List<String> _bankList = ['카카오뱅크', '신한은행', '국민은행', '우리은행', '토스뱅크'];
-
+  
+  // 프로필 정보 저장
   Future<void> _saveProfile() async {
     try {
       final token = await AuthTokenStorage.getToken();
-      final url = Uri.parse('${dotenv.env['BASE_URL']}/api/user/profile');
+      final url = Uri.parse('${dotenv.env['BASE_URL']}/api/profile/upload');
 
-      final response = await http.put(
-        url,
+      final response = await http.put(url,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -54,6 +63,7 @@ class _SettingEditScreenState extends State<SettingEditScreen> {
     _initializeData();
   }
 
+  // 프로필 이미지 조회
   Future<void> _initializeData() async {
     try {
       final token = await AuthTokenStorage.getToken();
@@ -73,6 +83,7 @@ class _SettingEditScreenState extends State<SettingEditScreen> {
           _nicknameController.text = data['nickname'] ?? '';
           _accountController.text = data['account_number'] ?? '';
           _selectedBank = data['bank_name'] ?? _selectedBank;
+          _profileImageUrl = data['profile_image_url'];
         });
       } else {
         print("데이터 로드 실패: ${response.statusCode}");
@@ -80,6 +91,84 @@ class _SettingEditScreenState extends State<SettingEditScreen> {
     } catch (e) {
       print("데이터 로드 중 오류 발생: $e");
     }
+  }
+  
+  // 프로필 이미지 업로드
+  Future<void> _pickAndUploadProfileImage(ImageSource source) async {
+    try {
+      // 5MB 이하 이미지 선택
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (pickedFile == null) return;
+
+      final imageFile = File(pickedFile.path);
+      setState(() {
+        _selectedImageFile = imageFile;
+        _isUploadingImage = true;
+      });
+
+      // 프로필 이미지 업로드
+      final uploadResult = await _profileUploadAPI.uploadProfileImage(imageFile);
+      // 업로드 완료 후 상태 업데이트
+      if (!mounted) return;
+
+      if (uploadResult.isSuccess) {
+        setState(() {
+          _profileImageUrl = uploadResult.imageUrl;
+          _isUploadingImage = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('프로필 사진이 저장되었습니다.')),
+        );
+      } else {
+        setState(() => _isUploadingImage = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              uploadResult.errorMessage ?? '프로필 사진 업로드에 실패했습니다.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isUploadingImage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('사진 선택 오류: $e')),
+      );
+    }
+  }
+
+  void _showImageSourceSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('갤러리에서 선택'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndUploadProfileImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('카메라로 촬영'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndUploadProfileImage(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -184,20 +273,44 @@ class _SettingEditScreenState extends State<SettingEditScreen> {
   // 위젯 분리: 프로필 이미지 및 카메라 아이콘
   // ==========================================
   Widget _buildProfileImageEdit() {
+    ImageProvider? imageProvider;
+    if (_selectedImageFile != null) {
+      imageProvider = FileImage(_selectedImageFile!);
+    } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
+      imageProvider = NetworkImage(_profileImageUrl!);
+    }
+
     return Stack(
       children: [
         CircleAvatar(
           radius: 45,
           backgroundColor: Colors.grey[200],
-          child: Icon(Icons.person, size: 45, color: Colors.grey[400]),
+          backgroundImage: imageProvider,
+          child: imageProvider == null
+              ? Icon(Icons.person, size: 45, color: Colors.grey[400])
+              : null,
         ),
+        if (_isUploadingImage)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+          ),
         Positioned(
           bottom: 0,
           right: 0,
           child: GestureDetector(
-            onTap: () {
-              // TODO: 갤러리/카메라 접근하여 이미지 변경 로직
-            },
+            onTap: _isUploadingImage ? null : _showImageSourceSheet,
             child: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(

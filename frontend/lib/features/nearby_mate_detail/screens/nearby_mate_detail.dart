@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 
 import '../widgets/TimeField.dart';
-import 'package:frontend/core/widgets/SearchBoxButton.dart';
+import 'package:frontend/core/widgets/search_box_button.dart';
 import 'package:frontend/core/auth/auth_token_storage.dart';
 
 import 'package:frontend/features/home/screens/place.dart';

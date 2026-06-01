@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/features/auth/screens/auth_header.dart';
-import 'setting_edit_screen.dart'; 
+import 'setting_edit_screen.dart';
 import 'charge_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -49,6 +49,7 @@ class _SettingScreenState extends State<SettingScreen> {
           // 서버에서 받아온 데이터를 화면용 변수에 저장
           userName = data['name'];
           nickname = data['nickname'] ?? "닉네임을 설정하세요";
+          profileImageUrl = data['profile_image_url'] ?? "";
           balance = data['balance'] ?? 0;
           bankName = data['bank_name'] ?? "";
           accountNumber = data['account_number'] ?? "계좌를 등록하세요";

@@ -8,13 +8,13 @@ import 'place.dart';
 import 'tmap_view.dart';
 
 import 'package:frontend/core/auth/auth_token_storage.dart';
-import 'package:frontend/core/widgets/SearchBoxButton.dart';
+import 'package:frontend/core/widgets/search_box_button.dart';
 
 import '../../nearby_mate_list/screens/nearby_mate_list.dart';
 import '../../nearby_mate_list/screens/zero_mate.dart';
 import '../../route_search/screens/placeSearchPage.dart';
-import '../../settlement/screens/final_dropoff.dart';
-import '../../settlement/screens/intermediate_dropoff.dart';
+import '../../settle_up/screens/final_dropoff.dart';
+import '../../settle_up/screens/intermediate_dropoff.dart';
 import '../../setting/screens/setting_screen.dart';
 
 class HomePage extends StatefulWidget {

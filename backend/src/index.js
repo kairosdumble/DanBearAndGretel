@@ -8,6 +8,7 @@ const ensureChatSchema = require("./db/ensureChatSchema");
 const authRoutes = require("./routes/auth.routes");
 const rateLimit = require("express-rate-limit");
 const userRoutes = require('./routes/user.routes');
+const profileRoutes = require('./routes/profile.routes');
 
 const app = express();
 const baseUrl = process.env.BASE_URL;
@@ -34,10 +35,11 @@ ensureChatSchema().catch((error) => {
 });
 
 app.use(cors());
-app.use(express.json());
-app.use("/auth", authRoutes);
-app.use("/auth/email", authLimiter);
-app.use('/api/user', userRoutes);
+app.use(express.json()); 
+app.use("/auth", authRoutes); // 인증 라우트
+app.use("/auth/email", authLimiter); // 이메일 인증 라우트
+app.use('/api/user', userRoutes); // 사용자 정보 조회 및 수정 라우트
+app.use('/api/profile', profileRoutes); // 프로필 사진 업로드 및 조회 라우트
 
 function buildTmapPoiUrl(query) {
   const url = new URL(tmapPoiBaseUrl);
