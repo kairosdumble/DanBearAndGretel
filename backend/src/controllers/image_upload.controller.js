@@ -66,7 +66,7 @@ async function uploadProfileImage(req, res) {
     return res.status(500).json({
       message: isMissingColumn
         ? "DB에 taxi_meter_image_url 컬럼이 없습니다. 서버를 재시작해 스키마를 동기화하세요."
-        : "서버 오류가 발생했습니다.",
+        : "프로필 서버 오류가 발생했습니다.",
       detail: error.message,
     });
   }
@@ -87,6 +87,7 @@ async function uploadTaxiMeterImage(req, res) {
     }
 
     const userId = req.user.id;
+    const reservationId = Number(req.body.reservation_id);
     const ext = path.extname(req.file.originalname); // 확장자 추출
     const filePath = `taxi_meters/${userId}/${req.file.originalname}`;
 
@@ -117,7 +118,7 @@ async function uploadTaxiMeterImage(req, res) {
       `INSERT INTO payments (reservation_id, final_user_id, taximeter_image_url)
        VALUES ($1, $2, $3)
        RETURNING taximeter_image_url`,
-     [req.body.reservation_id, userId, imageUrl], // 미터기를 찍는 사람이 최종하차자임으로 userIdd
+     [reservationId, userId, imageUrl], // 미터기를 찍는 사람이 최종하차자임으로 userIdd
 
     );
 
@@ -128,11 +129,8 @@ async function uploadTaxiMeterImage(req, res) {
     return res.status(200).json({ imageUrl });
   } catch (error) {
     console.error("uploadTaxiMeterImage 에러:", error);
-    const isMissingColumn = error.message?.includes("taxi_meter_image_url");
     return res.status(500).json({
-      message: isMissingColumn
-        ? "DB에 taxi_meter_image_url 컬럼이 없습니다. 서버를 재시작해 스키마를 동기화하세요."
-        : "서버 오류가 발생했습니다.",
+      message: "미터기 서버 오류가 발생했습니다.",
       detail: error.message,
     });
   }

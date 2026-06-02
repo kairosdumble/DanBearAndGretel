@@ -18,7 +18,8 @@ class TaximeterUploadResult {
 class TaximeterUploadAPI {
   final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
 
-  Future<TaximeterUploadResult> uploadTaximeterImage(File imageFile) async {
+  Future<TaximeterUploadResult> uploadTaximeterImage(File imageFile, {required int reservationId,}
+  ) async {
     try {
       final token = await AuthTokenStorage.getToken();
       if (token == null || token.isEmpty) {
@@ -27,9 +28,10 @@ class TaximeterUploadAPI {
 
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/api/image/taxi_meter/upload'),
+        Uri.parse('$baseUrl/api/image/upload'),
       );
       request.headers['Authorization'] = 'Bearer $token';
+      request.fields['reservation_id'] = reservationId.toString();
       request.files.add(
         await http.MultipartFile.fromPath('image', imageFile.path),
       );

@@ -131,8 +131,20 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
         _isUploadingImage = true;
       });
 
+      final reservationId = widget.matchData['id'];
+      if (reservationId is! int || reservationId <= 0) {
+        setState(() => _isUploadingImage = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('예약 정보가 없어 미터기 업로드를 진행할 수 없습니다.')),
+        );
+        return;
+      }
+
       // 미터기 이미지 업로드
-      final uploadResult = await _taxmeterUploadAPI.uploadTaximeterImage(imageFile);
+      final uploadResult = await _taxmeterUploadAPI.uploadTaximeterImage(
+        imageFile,
+        reservationId: reservationId,
+      );
       // 업로드 완료 후 상태 업데이트
       if (!mounted) return;
 
