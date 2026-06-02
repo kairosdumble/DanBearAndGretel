@@ -3,8 +3,7 @@ const express = require("express");
 //사진, 동영상, PDF 같은 파일은 용량이 크고 데이터가 아주 복잡한 덩어리 형태로 쪼개져서 넘어옵니다.->multer를 사용하여 파일을 업로드
 const multer = require("multer");
 const { authenticate } = require("../middleware/auth.middleware");
-const profileController = require("../controllers/profile.controller");
-
+const imageUploadController = require("../controllers/image_upload.controller");
 const router = express.Router();
 
 const upload = multer({
@@ -28,7 +27,7 @@ const upload = multer({
   }
 });
 
-router.post("/upload",authenticate,(req, res, next) => {
+router.post("/profile/upload",authenticate,(req, res, next) => {
     upload.single("image")(req, res, (err) => {
       if (err) {
         const message = err.code === "LIMIT_FILE_SIZE"
@@ -38,7 +37,20 @@ router.post("/upload",authenticate,(req, res, next) => {
       next();//다음 미들웨어 실행
     });
   },
-  profileController.uploadProfileImage,
+  imageUploadController.uploadProfileImage,
+);
+
+router.post("/taxi_meter/upload",authenticate,(req, res, next) => {
+    upload.single("image")(req, res, (err) => {
+      if (err) {
+        const message = err.code === "LIMIT_FILE_SIZE"
+            ? "이미지 크기는 5MB 이하여야 합니다." : err.message || "이미지 업로드에 실패했습니다.";
+        return res.status(400).json({ message });
+      }
+      next();//다음 미들웨어 실행
+    });
+  },
+  imageUploadController.uploadTaxiMeterImage,
 );
 
 module.exports = router;

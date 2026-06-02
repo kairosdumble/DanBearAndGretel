@@ -10,5 +10,5 @@ router.get('/profile', authenticate, userController.getUserProfile);
 router.put('/profile', authenticate, userController.updateUserProfile);
 // 충전 경로
 router.post('/charge', authenticate, userController.chargeBalance);
-
+// 개인정보 수정 경로
 module.exports = router;

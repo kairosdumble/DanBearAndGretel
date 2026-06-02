@@ -31,7 +31,7 @@ class _SettingEditScreenState extends State<SettingEditScreen> {
   Future<void> _saveProfile() async {
     try {
       final token = await AuthTokenStorage.getToken();
-      final url = Uri.parse('${dotenv.env['BASE_URL']}/api/profile/upload');
+      final url = Uri.parse('${dotenv.env['BASE_URL']}/api/user/profile');
 
       final response = await http.put(url,
         headers: {
@@ -122,14 +122,14 @@ class _SettingEditScreenState extends State<SettingEditScreen> {
           _isUploadingImage = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('프로필 사진이 저장되었습니다.')),
+          const SnackBar(content: Text('사진이 저장되었습니다.')),
         );
       } else {
         setState(() => _isUploadingImage = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              uploadResult.errorMessage ?? '프로필 사진 업로드에 실패했습니다.',
+              uploadResult.errorMessage ?? ' 사진 업로드에 실패했습니다.',
             ),
           ),
         );

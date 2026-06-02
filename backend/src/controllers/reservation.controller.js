@@ -1,5 +1,5 @@
 const reservationService = require("../services/reservation.service");
-const proximityMatchService = require("../services/proximityMatch.service");
+const proximityMatchService = require("../services/proximity_match.service");
 
 // POST /api/reservations
 async function createReservation(req, res) {

@@ -27,7 +27,7 @@ class ProfileUploadAPI {
 
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/api/profile/upload'),
+        Uri.parse('$baseUrl/api/image/profile/upload'),
       );
       request.headers['Authorization'] = 'Bearer $token';
       request.files.add(
@@ -39,9 +39,7 @@ class ProfileUploadAPI {
 
       if (response.statusCode == 200) {
         final result = jsonDecode(responseData) as Map<String, dynamic>;
-        return ProfileUploadResult(
-          imageUrl: result['imageUrl'] as String?,
-        );
+        return ProfileUploadResult(imageUrl: result['imageUrl'] as String?);
       }
 
       String message = '업로드 실패 (HTTP ${response.statusCode})';

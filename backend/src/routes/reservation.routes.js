@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const reservationController = require("../controllers/reservationController");
+const reservationController = require("../controllers/reservation.controller");
 const { authenticate } = require("../middleware/auth.middleware");
 
 // app.use("/api/reservations", router) → POST/GET /api/reservations, PUT /api/reservations/:id
