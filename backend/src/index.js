@@ -8,7 +8,7 @@ const ensureChatSchema = require("./db/ensureChatSchema");
 const authRoutes = require("./routes/auth.routes");
 const rateLimit = require("express-rate-limit");
 const userRoutes = require('./routes/user.routes');
-const imageUploadRoutes = require('./routes/image_upload.routes');
+const imageUploadRoutes = require('./routes/image.routes');
 
 const app = express();
 const baseUrl = process.env.BASE_URL;
