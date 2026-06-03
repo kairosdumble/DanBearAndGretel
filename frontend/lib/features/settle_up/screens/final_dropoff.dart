@@ -1,26 +1,32 @@
+import 'dart:io';
+import "dart:developer" as developer;
+
 import 'package:flutter/material.dart';
-import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
-import 'dart:io'; // 파일 처리를 위해 필요
-import '../services/images/taxmeter_upload_api.dart'; // 미터기 사진 업로드 API 서비스
 import 'package:image_picker/image_picker.dart';
+import '../../../data/colors.dart';
+
+import '../../chat/screens/mate_chat_screen.dart';
+import '../services/images/taximeter_upload_api.dart'; // 미터기 사진 업로드 API 서비스
+import '../services/images/taximeter_extract_api.dart'; // 미터기 금액 인식 API 서비스
 
 class FinalDropoffScreen extends StatefulWidget {
   final Map<String, dynamic> matchData;
 
-  const FinalDropoffScreen({
-    Key? key, 
-    required this.matchData
-  }) : super(key: key);
+  const FinalDropoffScreen({Key? key, required this.matchData}) : super(key: key);
 
   @override
   State<FinalDropoffScreen> createState() => _FinalDropoffScreenState();
 }
 
 class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
-  File? _image; // 선택된 사진을 담을 변수
+  // 선택된 택시 미터기 사진 파일
   File? _selectedImageFile;
+  // 택시 사진 업로드 후 반환된 이미지 URL을 저장하는 변수
   String? _TaxiImageUrl;
-  bool _isUploadingImage = false; // 사진 업로드 상태를 나타내는 변수
+  // 사진 업로드 상태를 나타내는 변수
+  bool _isUploadingImage = false; 
+
+  final TextEditingController _fareInputController = TextEditingController();
   final TaximeterUploadAPI _taxmeterUploadAPI = TaximeterUploadAPI();
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -98,7 +104,18 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: 정산 로직
+                    // 서버에 금액 전송
+                    final String enteredFare = _fareInputController.text;
+                    if (enteredFare.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('금액을 입력해주세요.')),
+                      );
+                      return;
+                    }
+                    // 서버로 금액 전송 로직 구현 필요
+                   ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('입력된 금액: $enteredFare 원')),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFF3F51B5),
@@ -113,7 +130,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
       ),
     );
   }
-    // 미터기 이미지 업로드
+  // 미터기 이미지 업로드
   Future<void> _pickAndUploadTaxiMeterImage(ImageSource source) async {
     try {
       // 5MB 이하 이미지 선택
@@ -140,7 +157,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
         return;
       }
 
-      // 미터기 이미지 업로드
+      // 1. 미터기 이미지 업로드
       final uploadResult = await _taxmeterUploadAPI.uploadTaximeterImage(
         imageFile,
         reservationId: reservationId,
@@ -149,6 +166,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
       if (!mounted) return;
 
       if (uploadResult.isSuccess) {
+        // 1. 업로드 성공 시 이미지 URL 저장 및 사용자에게 알림
         setState(() {
           _TaxiImageUrl = uploadResult.imageUrl;
           _isUploadingImage = false;
@@ -156,6 +174,17 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('사진이 저장되었습니다.')),
         );
+        // 2. 업로드 성공 시 금액 인식 API 호출 후 결과 표기
+        final recognizedFare = await TaximeterExtractAPI.recognizeFareFromImage(_TaxiImageUrl!);
+        if (recognizedFare.isSuccess) {
+          setState(() {
+            _fareInputController.text = recognizedFare.fare.toString();
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(recognizedFare.errorMessage ?? '금액 인식에 실패했습니다.')),
+          );
+        }
       } else {
         setState(() => _isUploadingImage = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -175,6 +204,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
     }
   }
 
+  // 사진 선택 옵션 시트 표시
   Future<void> _showImageSourceSheet() async {
     showModalBottomSheet(
       context: context,
@@ -212,27 +242,46 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
         const SizedBox(height: 10),
         InkWell(
           onTap: _isUploadingImage ? null : _showImageSourceSheet,
-          child: Container(
+          child: _selectedImageFile == null
+              ? Container(
             width: double.infinity,
             height: 100,
             decoration: BoxDecoration(
               color: Colors.grey[100],
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: AuthColors.gray, width: 1),
             ),
-            child: _image == null
-              ? Column(
+            child:Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.upload_sharp, color: Colors.grey[600], size: 40),
                     const SizedBox(height: 8),
                     Text("총 금액이 보이게 확인해주세요", style: TextStyle(color: Colors.grey[600])),
                   ],
-                )
-              : ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(_image!, fit: BoxFit.cover),
+                ),                
+              )
+              : TextFormField(
+                controller: _fareInputController, // 컨트롤러 연결
+                keyboardType: TextInputType.number, // 숫자 키패드가 뜨도록 설정
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w300),
+                decoration: InputDecoration(
+                  hintText: '금액이 인식되면 여기에 표시됩니다.',
+                  suffixText: '원', // 오른쪽에 '원' 표시 고정
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AuthColors.gray, width: 1), // 기본 회색 테두리
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AuthColors.bluePrimary, width: 2), // 포커스 시 파란색 테두리
+                  ),
                 ),
+                // 사용자가 직접 값을 수정할 때마다 실행되는 이벤트
+                onChanged: (value) {
+                  _fareInputController.text = value;
+                  developer.log('사용자가 수정한 금액: $_fareInputController.text');
+              },
             ),
           ),
       ],
@@ -252,7 +301,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
           ListTile(title: Text("하차지"), trailing: Text(dest)),
           const Divider(),
           ListTile(title: Text("정산 금액", style: TextStyle(fontWeight: FontWeight.bold)), 
-                   trailing: Text("${fare}원", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3F51B5)))),
+                   trailing: Text("${fare}원", style: TextStyle(fontWeight: FontWeight.bold, color: AuthColors.bluePrimary))),
         ],
       ),
     );

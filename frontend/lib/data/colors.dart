@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 ///
 /// 사용 예시:
 /// 1) 파일 상단 import 추가
-///    import 'package:frontend/features/auth/widgets/colors.dart';
+///    import 'package:frontend/lib/data/colors.dart';
 ///
 /// 2) 위젯에서 닉네임으로 사용
 ///    Container(color: AuthColors.white)
