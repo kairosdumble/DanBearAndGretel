@@ -5,16 +5,24 @@ function hasCoordinate(value) {
     return Number.isFinite(number);
 }
 
-const distanceExpression = `
+function distanceExpression(fromLat, fromLng, toLat, toLng) {
+    return `
     6371000 * 2 * ASIN(
-        SQRT(
-            POWER(SIN(RADIANS(departure_lat - $1) / 2), 2) +
-            COS(RADIANS($1)) *
-            COS(RADIANS(departure_lat)) *
-            POWER(SIN(RADIANS(departure_lng - $2) / 2), 2)
+        LEAST(
+            1,
+            SQRT(
+                POWER(SIN(RADIANS(${toLat} - ${fromLat}) / 2), 2) +
+                COS(RADIANS(${fromLat})) *
+                COS(RADIANS(${toLat})) *
+                POWER(SIN(RADIANS(${toLng} - ${fromLng}) / 2), 2)
+            )
         )
     )
 `;
+}
+
+const departureTimeSelect =
+    "to_char(departure_time, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS departure_time";
 
 const reservationService = {
     createReservation: async (userId, reservationData) => {
@@ -69,28 +77,77 @@ const reservationService = {
     },
 
     getReservationsByUserId: async (userId) => {
-        const query = "SELECT * FROM reservations WHERE user_id = $1 ORDER BY departure_time ASC";
+        const query = `
+            SELECT *, ${departureTimeSelect}
+            FROM reservations
+            WHERE user_id = $1
+            ORDER BY reservations.departure_time ASC
+        `;
         const { rows } = await pool.query(query, [userId]);
         return rows;
     },
 
-    getAllReservations: async ({ lat, lng } = {}) => {
+    getAllReservations: async ({ lat, lng, destinationLat, destinationLng } = {}) => {
         if (hasCoordinate(lat) && hasCoordinate(lng)) {
+            const distanceFromOrigin = distanceExpression(
+                "$1",
+                "$2",
+                "departure_lat",
+                "departure_lng",
+            );
+
+            if (hasCoordinate(destinationLat) && hasCoordinate(destinationLng)) {
+                const candidateToDestination = distanceExpression(
+                    "departure_lat",
+                    "departure_lng",
+                    "$3",
+                    "$4",
+                );
+                const originToDestination = distanceExpression("$1", "$2", "$3", "$4");
+                const query = `
+                    SELECT
+                        *,
+                        ${departureTimeSelect},
+                        ROUND((${distanceFromOrigin})::numeric)::integer AS distance_meters,
+                        GREATEST(
+                            0,
+                            ROUND((
+                                (${distanceFromOrigin}) +
+                                (${candidateToDestination}) -
+                                (${originToDestination})
+                            )::numeric)::integer
+                        ) AS detour_meters
+                    FROM reservations
+                    WHERE departure_lat IS NOT NULL
+                      AND departure_lng IS NOT NULL
+                    ORDER BY detour_meters ASC, distance_meters ASC, reservations.departure_time ASC NULLS LAST, id ASC;
+                `;
+                const { rows } = await pool.query(query, [
+                    Number(lat),
+                    Number(lng),
+                    Number(destinationLat),
+                    Number(destinationLng),
+                ]);
+                return rows;
+            }
+
             const query = `
                 SELECT
                     *,
-                    ROUND((${distanceExpression})::numeric)::integer AS distance_meters
+                    ${departureTimeSelect},
+                    ROUND((${distanceFromOrigin})::numeric)::integer AS distance_meters,
+                    NULL::integer AS detour_meters
                 FROM reservations
                 WHERE departure_lat IS NOT NULL
                   AND departure_lng IS NOT NULL
-                ORDER BY distance_meters ASC, departure_time ASC NULLS LAST, id ASC;
+                ORDER BY distance_meters ASC, reservations.departure_time ASC NULLS LAST, id ASC;
             `;
             const { rows } = await pool.query(query, [Number(lat), Number(lng)]);
             return rows;
         }
 
         const query =
-            "SELECT *, NULL::integer AS distance_meters FROM reservations ORDER BY departure_time ASC NULLS LAST, id ASC";
+            `SELECT *, ${departureTimeSelect}, NULL::integer AS distance_meters, NULL::integer AS detour_meters FROM reservations ORDER BY reservations.departure_time ASC NULLS LAST, id ASC`;
         const { rows } = await pool.query(query);
         return rows;
     },

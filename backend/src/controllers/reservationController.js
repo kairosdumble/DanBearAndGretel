@@ -72,9 +72,13 @@ async function getAllReservations(req, res) {
     try {
         const lat = parseCoordinate(req.query.lat);
         const lng = parseCoordinate(req.query.lng);
+        const destinationLat = parseCoordinate(req.query.destinationLat);
+        const destinationLng = parseCoordinate(req.query.destinationLng);
         const reservations = await reservationService.getAllReservations({
             lat,
             lng,
+            destinationLat,
+            destinationLng,
         });
         res.status(200).json(reservations);
     } catch (error) {

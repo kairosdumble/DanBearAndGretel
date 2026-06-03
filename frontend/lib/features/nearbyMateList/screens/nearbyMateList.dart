@@ -86,17 +86,25 @@ class _NearbyMateListState extends State<NearbyMateList> {
 
   Uri _reservationsUri(String baseUrl) {
     final departure = widget.departure;
+    final destination = widget.destination;
     final uri = Uri.parse('$baseUrl/api/reservations/all');
     if (departure == null) {
       return uri;
     }
 
-    return uri.replace(
-      queryParameters: {
-        'lat': departure.latitude.toString(),
-        'lng': departure.longitude.toString(),
-      },
-    );
+    final queryParameters = {
+      'lat': departure.latitude.toString(),
+      'lng': departure.longitude.toString(),
+    };
+
+    if (destination != null) {
+      queryParameters.addAll({
+        'destinationLat': destination.latitude.toString(),
+        'destinationLng': destination.longitude.toString(),
+      });
+    }
+
+    return uri.replace(queryParameters: queryParameters);
   }
 
   String _formatDepartureTime(dynamic value) {

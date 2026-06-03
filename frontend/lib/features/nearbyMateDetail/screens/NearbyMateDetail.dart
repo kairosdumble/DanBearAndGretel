@@ -34,6 +34,15 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
   Place? _departure;
   Place? _destination;
 
+  String _formatLocalDateTimeForApi(DateTime value) {
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$year-$month-$day $hour:$minute:00';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -152,7 +161,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
           'departure_lng': departurePlace.longitude,
           'destination_lat': destinationPlace.latitude,
           'destination_lng': destinationPlace.longitude,
-          'departure_time': departureTime.toIso8601String(),
+          'departure_time': _formatLocalDateTimeForApi(departureTime),
         }),
       );
 
