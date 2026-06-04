@@ -4,13 +4,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:frontend/data/colors.dart';
 
 import 'package:frontend/core/auth/auth_token_storage.dart';
-import 'package:frontend/data/colors.dart';
 
 import 'package:frontend/features/bluetooth/screens/bluetooth_connect.dart';
 import 'package:frontend/features/bluetooth/services/proximity_match_api.dart';
 import 'package:frontend/features/nearby_mate_list/screens/nearby_mate_list.dart';
+
 //[TODO] 나중에 isMatching/Matched 상태 성리 필요
 
 class MateChatScreen extends StatefulWidget {
@@ -908,7 +909,7 @@ class _RouteTimeline extends StatelessWidget {
               ),
               _RouteIconCircle(
                 icon: Icons.home_rounded,
-                color: const Color(0xFF2E9B4F),
+                color: AuthColors.green,
               ),
             ],
           ),

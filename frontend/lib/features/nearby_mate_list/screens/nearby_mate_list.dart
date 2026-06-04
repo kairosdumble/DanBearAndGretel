@@ -154,7 +154,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
         return (label: '완료', color: AuthColors.grayText);
       case 'READY':
       default:
-        return (label: '모집 중', color: const Color(0xFF2E9B4F));
+        return (label: '모집 중', color: AuthColors.green);
     }
   }
 
@@ -428,7 +428,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
                               ),
                               _buildRouteRow(
                                 icon: Icons.home_rounded,
-                                iconColor: const Color(0xFF2E9B4F),
+                                iconColor: AuthColors.green,
                                 label: destinationLabel,
                               ),
                             ],

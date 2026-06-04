@@ -28,7 +28,8 @@ class AuthColors {
   static const Color red = Color(0xFFBB1B1B);
   //노랑색
   static const Color yellow = Color(0xFFF6FF00);
-  
+  //초록색
+  static const Color green = Color(0xFF008000);
   // 검정색 (글씨)
   static const Color blackText = Color(0xFF000000);
   // 회색 (글씨)
