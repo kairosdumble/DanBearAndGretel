@@ -11,6 +11,7 @@ router.post("/create", reservationController.createReservation);
 router.post("/create", reservationController.createReservation); // 예약 생성
 router.get("/get", reservationController.getReservation); // 특정 예약 조회
 router.get("/all", reservationController.getAllReservations); // 현재 DB에 존재하는 모든 예약 조회
+router.get("/:id", reservationController.getReservationById); // 단일 예약 조회
 router.put("/put/:id", reservationController.putReservation); // 특정 예약 수정
 
 //사용자별

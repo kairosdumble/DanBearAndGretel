@@ -68,6 +68,26 @@ async function getReservation(req, res) {
     }
 }
 
+async function getReservationById(req, res) {
+    try {
+        const reservationId = Number(req.params.id);
+        if (!Number.isInteger(reservationId) || reservationId <= 0) {
+            return res.status(400).json({ message: "예약 ID가 필요합니다." });
+        }
+
+        const reservation = await reservationService.getReservationById(reservationId);
+        if (!reservation) {
+            return res.status(404).json({ message: "해당 예약을 찾을 수 없습니다." });
+        }
+        res.status(200).json(reservation);
+    } catch (error) {
+        res.status(500).json({
+            message: "예약 조회 중 오류가 발생했습니다.",
+            error: error.message,
+        });
+    }
+}
+
 async function getAllReservations(req, res) {
     try {
         const lat = parseCoordinate(req.query.lat);
@@ -190,6 +210,7 @@ async function getProximityMatch(req, res) {
 module.exports = {
     createReservation,
     getReservation,
+    getReservationById,
     getAllReservations,
     putReservation,
     confirmProximityMatch,

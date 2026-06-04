@@ -199,6 +199,16 @@ const reservationService = {
         const { rows } = await pool.query(query, values);
         return rows[0];
     },
+
+    getReservationById: async (reservationId) => {
+        const query = `
+            SELECT *, ${departureTimeSelect}, ${participantCountSelect}
+            FROM reservations
+            WHERE id = $1
+        `;
+        const { rows } = await pool.query(query, [reservationId]);
+        return rows[0];
+    },
 };
 
 module.exports = reservationService;
