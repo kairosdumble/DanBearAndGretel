@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 ///
 /// 사용 예시:
 /// 1) 파일 상단 import 추가
-///    import 'package:frontend/features/auth/widgets/colors.dart';
+///    import 'package:frontend/lib/data/colors.dart';
 ///
 /// 2) 위젯에서 닉네임으로 사용
 ///    Container(color: AuthColors.white)
@@ -28,7 +28,8 @@ class AuthColors {
   static const Color red = Color(0xFFBB1B1B);
   //노랑색
   static const Color yellow = Color(0xFFF6FF00);
-  
+  //초록색
+  static const Color green = Color(0xFF008000);
   // 검정색 (글씨)
   static const Color blackText = Color(0xFF000000);
   // 회색 (글씨)

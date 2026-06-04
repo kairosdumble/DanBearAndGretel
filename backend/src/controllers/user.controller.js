@@ -5,7 +5,7 @@ exports.getUserProfile = async (req, res) => {
         const userId = req.user.id; 
         // 유저 정보 조회 쿼리
         const query = `
-            SELECT student_id, name, email, nickname, balance, bank_name, account_number 
+            SELECT student_id, name, email, nickname, profile_image_url, balance, bank_name, account_number 
             FROM users 
             WHERE id = $1
         `;

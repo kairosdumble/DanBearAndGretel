@@ -1,4 +1,4 @@
-const verificationService = require("../services/emailVerification.service");
+const verificationService = require("../services/email_verification.service");
 const pool = require("../db/pool");
 const bcrypt = require("bcrypt"); // 비밀번호 암호화용
 const jwt = require("jsonwebtoken");
