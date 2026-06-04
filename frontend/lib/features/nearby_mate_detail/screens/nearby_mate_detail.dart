@@ -233,7 +233,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
                     const Text(
                       '예약',
                       style: TextStyle(
-                        fontSize: 25,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -242,7 +242,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
                 const SizedBox(height: 60),
                 const Text(
                   '출발지',
-                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 14),
                 SearchBoxButton(
@@ -253,7 +253,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
                 const SizedBox(height: 40),
                 const Text(
                   '목적지',
-                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 14),
                 SearchBoxButton(
@@ -264,7 +264,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
                 const SizedBox(height: 40),
                 const Text(
                   '출발시간',
-                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 14),
                 Row(
@@ -286,7 +286,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
                 const SizedBox(height: 50),
                 SizedBox(
                   width: double.infinity,
-                  height: 58,
+                  height: 50,
                   child: ElevatedButton(
                     onPressed: _insertReservation,
                     style: ElevatedButton.styleFrom(
@@ -299,7 +299,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
                     child: const Text(
                       '예약 생성',
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),

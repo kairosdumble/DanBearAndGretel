@@ -24,6 +24,14 @@ function distanceExpression(fromLat, fromLng, toLat, toLng) {
 const departureTimeSelect =
     "to_char(departure_time, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS departure_time";
 
+const participantCountSelect = `
+    COALESCE(
+        (SELECT COUNT(*)::integer
+         FROM reservation_chat_participants rcp
+         WHERE rcp.reservation_id = reservations.id),
+        0
+    ) AS participant_count`;
+
 const reservationService = {
     createReservation: async (userId, reservationData) => {
         const {
@@ -116,7 +124,8 @@ const reservationService = {
                                 (${candidateToDestination}) -
                                 (${originToDestination})
                             )::numeric)::integer
-                        ) AS detour_meters
+                        ) AS detour_meters,
+                        ${participantCountSelect}
                     FROM reservations
                     WHERE departure_lat IS NOT NULL
                       AND departure_lng IS NOT NULL
@@ -136,7 +145,8 @@ const reservationService = {
                     *,
                     ${departureTimeSelect},
                     ROUND((${distanceFromOrigin})::numeric)::integer AS distance_meters,
-                    NULL::integer AS detour_meters
+                    NULL::integer AS detour_meters,
+                    ${participantCountSelect}
                 FROM reservations
                 WHERE departure_lat IS NOT NULL
                   AND departure_lng IS NOT NULL
@@ -147,7 +157,7 @@ const reservationService = {
         }
 
         const query =
-            `SELECT *, ${departureTimeSelect}, NULL::integer AS distance_meters, NULL::integer AS detour_meters FROM reservations ORDER BY reservations.departure_time ASC NULLS LAST, id ASC`;
+            `SELECT *, ${departureTimeSelect}, NULL::integer AS distance_meters, NULL::integer AS detour_meters, ${participantCountSelect} FROM reservations ORDER BY reservations.departure_time ASC NULLS LAST, id ASC`;
         const { rows } = await pool.query(query);
         return rows;
     },

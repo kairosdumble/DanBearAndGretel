@@ -173,7 +173,7 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity,
-                    height: 55,
+                    height: 50,
                     child: ElevatedButton(
                       onPressed: canFindMate ? _onFindMatePressed : null,
                       style: ElevatedButton.styleFrom(
@@ -194,6 +194,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 30),
                 ],
               ),
             ),
