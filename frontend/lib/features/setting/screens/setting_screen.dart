@@ -180,6 +180,12 @@ class _SettingScreenState extends State<SettingScreen> {
           title: '충전하기',
           titleColor: Colors.redAccent,
           onTap: () async {
+            if (bankName == null || bankName!.isEmpty || accountNumber == null || accountNumber!.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("출금 계좌를 등록한 후 충전할 수 있습니다.")),
+              );
+              return;
+            }
             final isCharged = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const chargeScreen()),
