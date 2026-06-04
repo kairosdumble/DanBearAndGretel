@@ -71,6 +71,10 @@ CREATE TABLE IF NOT EXISTS reservations (
     -- COMPLETED: 최종하차자 하차 후
     status TEXT NOT NULL DEFAULT 'READY' CHECK (status IN ('READY', 'RUNNING', 'COMPLETED')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 생성시간
+        ADD COLUMN IF NOT EXISTS departure_lat DOUBLE PRECISION,
+    departure_lng DOUBLE PRECISION,
+    destination_lat DOUBLE PRECISION,
+    destination_lng DOUBLE PRECISION;
 );
 
 -- 참여자 관리 테이블
@@ -98,9 +102,8 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     message TEXT NOT NULL, -- 메시지 내용
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() -- 생성시간
 );
+
 CREATE INDEX IF NOT EXISTS idx_chat_messages_reservation_created ON chat_messages (reservation_id, created_at, id);
-
-
 -- 예약별 결제 테이블
 -- 생성시점: 미터기 이미지 업로드 시점
 -- 정산은 reservation_bluetooth_participants 테이블에 존재하는 사람들과 거리를 기준으로 계산
@@ -111,6 +114,3 @@ CREATE TABLE IF NOT EXISTS payments (
     taximeter_image_url VARCHAR(255) NULL, -- 결제한 사용자의 택시 미터 이미지 URL
     --settle.service.js의 updateTotal 함수에서 fare 컬럼 추가함
 );
-
-CREATE INDEX IF NOT EXISTS idx_payments_reservation ON payments (reservation_id,total_fare);
-CREATE INDEX IF NOT EXISTS idx_payments_final_user ON payments (reservation_id,final_user_id);

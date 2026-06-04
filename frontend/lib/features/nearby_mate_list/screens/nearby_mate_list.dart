@@ -6,10 +6,14 @@ import 'package:http/http.dart' as http;
 
 import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
+import 'package:frontend/features/home/screens/place.dart';
 import 'package:frontend/features/nearby_mate_detail/screens/nearby_mate_detail.dart';
 
 class NearbyMateList extends StatefulWidget {
-  const NearbyMateList({super.key});
+  const NearbyMateList({super.key, this.departure, this.destination});
+
+  final Place? departure;
+  final Place? destination;
 
   @override
   State<NearbyMateList> createState() => _NearbyMateListState();
@@ -43,9 +47,9 @@ class _NearbyMateListState extends State<NearbyMateList> {
         });
         return;
       }
-
+      final uri = _reservationsUri(baseUrl);
       final response = await http.get(
-        Uri.parse('$baseUrl/api/reservations/all'),
+        uri,
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -56,7 +60,8 @@ class _NearbyMateListState extends State<NearbyMateList> {
         final list = decoded is List ? decoded : <dynamic>[];
         setState(() {
           _reservations = list
-              .map((e) => Map<String, dynamic>.from(e as Map))
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
               .toList();
           _loading = false;
         });
@@ -75,6 +80,27 @@ class _NearbyMateListState extends State<NearbyMateList> {
         _reservations = [];
       });
     }
+  }
+  Uri _reservationsUri(String baseUrl) {
+    final departure = widget.departure;
+    final destination = widget.destination;
+    final uri = Uri.parse('$baseUrl/api/reservations/all');
+    if (departure == null) {
+      return uri;
+    }
+
+    final queryParameters = {
+      'lat': departure.latitude.toString(),
+      'lng': departure.longitude.toString(),
+    };
+
+    if (destination != null) {
+      queryParameters.addAll({
+        'destinationLat': destination.latitude.toString(),
+        'destinationLng': destination.longitude.toString(),
+      });
+    }
+    return uri.replace(queryParameters: queryParameters);
   }
 
   String _formatDepartureTime(dynamic value) {
@@ -113,8 +139,8 @@ class _NearbyMateListState extends State<NearbyMateList> {
                   GestureDetector(
                     onTap: () => Navigator.of(context).maybePop(),
                     child: Container(
-                      width: 44,
-                      height: 44,
+                      width: 36,
+                      height: 36,
                       decoration: const BoxDecoration(
                         color: Color(0xFFF2F3F5),
                         shape: BoxShape.circle,
@@ -133,7 +159,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Align(
                 alignment: Alignment.centerLeft,
                 child: ElevatedButton(
@@ -149,7 +175,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shadowColor: Colors.transparent,
-                    minimumSize: const Size(122, 34),
+                    minimumSize: const Size(122, 30),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -171,7 +197,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 6),
               if (_loading)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 48),
@@ -205,10 +231,10 @@ class _NearbyMateListState extends State<NearbyMateList> {
                   );
                   final routeText = dep.isEmpty && dest.isEmpty
                       ? '예약 장소 미정'
-                      : '$dep\n->$dest';
+                      : '$dep -> $dest';
                   final chatTitle = dep.isEmpty && dest.isEmpty
                       ? 'Reservation #${reservationId ?? '-'}'
-                      : '$dep \n-> $dest';
+                      : '$dep -> $dest';
 
                   return _buildReservationCard(
                     routeText: routeText,
@@ -243,7 +269,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -255,72 +281,56 @@ class _NearbyMateListState extends State<NearbyMateList> {
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  routeText,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    height: 1.28,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF111111),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onChat,
+          child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    routeText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      height: 1.28,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF111111),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  departureDate.isEmpty ? '출발날짜: 미정' : '출발날짜: $departureDate',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    height: 1.3,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111111),
+                  const SizedBox(height: 6),
+                  Text(
+                    departureDate.isEmpty ? '출발날짜: 미정' : '출발날짜: $departureDate',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111111),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  departureTime.isEmpty ? '출발시간: 미정' : '출발시간:$departureTime',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    height: 1.3,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111111),
+                  const SizedBox(height: 2),
+                  Text(
+                    departureTime.isEmpty ? '출발시간: 미정' : '출발시간: $departureTime',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111111),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 14),
-          SizedBox(
-            width: 52,
-            height: 42,
-            child: ElevatedButton(
-              onPressed: onChat,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2C55A1),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shadowColor: Colors.transparent,
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                '채팅',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+        )
+      )
     );
   }
 }

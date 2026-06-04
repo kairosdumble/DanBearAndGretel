@@ -1,18 +1,12 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 
-import 'place.dart';
-import 'tmap_view.dart';
-
-import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/core/widgets/search_box_button.dart';
 
 import '../../nearby_mate_list/screens/nearby_mate_list.dart';
-import '../../nearby_mate_list/screens/zero_mate.dart';
 import '../../route_search/screens/place_search.dart';
+import 'place.dart';
+import 'tmap_view.dart';
+
 import '../../settle_up/screens/final_dropoff.dart';
 import '../../settle_up/screens/intermediate_dropoff.dart';
 import '../../setting/screens/setting_screen.dart';
@@ -24,15 +18,13 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아오기 필요.
+class _HomePageState extends State<HomePage> {
   Place? _departure;
   Place? _destination;
 
   Future<void> _openSearch(PlaceSearchType type) async {
     final place = await Navigator.of(context).push<Place>(
-      MaterialPageRoute(
-        builder: (_) => PlaceSearchPage(type: type),
-      ),
+      MaterialPageRoute(builder: (_) => PlaceSearchPage(type: type)),
     );
 
     if (!mounted || place == null) {
@@ -49,69 +41,18 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
   }
 
   Future<void> _onFindMatePressed() async {
-    if (_departure == null || _destination == null) return;
-
-    final token = await AuthTokenStorage.getToken();
-    if (!mounted) return;
-    if (token == null || token.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('로그인이 필요합니다.')),
-      );
+    final departure = _departure;
+    final destination = _destination;
+    if (departure == null || destination == null) {
       return;
     }
 
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            NearbyMateList(departure: departure, destination: destination),
+      ),
     );
-
-    try {
-      final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/reservations/all'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      String? errorMessage;
-      var hasReservations = false;
-
-      if (response.statusCode != 200) {
-        errorMessage = '예약 목록을 불러오지 못했습니다. (${response.statusCode})';
-      } else {
-        try {
-          final decoded = json.decode(response.body);
-          final list = decoded is List ? decoded : <dynamic>[];
-          hasReservations = list.isNotEmpty;
-        } catch (_) {
-          errorMessage = '예약 목록 응답을 처리하지 못했습니다.';
-        }
-      }
-
-      if (!mounted) return;
-      Navigator.of(context).pop();
-
-      if (errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
-        return;
-      }
-
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          builder: (_) => hasReservations
-              ? const NearbyMateList()
-              : const ZeroMateScreen(),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('네트워크 오류: $e')),
-      );
-    }
   }
 
   @override
@@ -210,30 +151,6 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
                           ),
                         ),
                       ),
-                      /*
-                      SizedBox(
-                        height: 32,
-                        child: ElevatedButton(
-                          onPressed: () {}, // 나~~~중에 여기서 이전 내역 이동 구현 하기
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE0E0E0),
-                            foregroundColor: Colors.black,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                          ),
-                          child: const Text(
-                            '이전내역',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      */
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -245,10 +162,7 @@ class _HomePageState extends State<HomePage> { // [TODO]로그인 정보 받아�
                   const SizedBox(height: 30),
                   const Text(
                     '목적지 설정',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   SearchBoxButton(
