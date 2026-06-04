@@ -9,6 +9,7 @@ const authRoutes = require("./routes/auth.routes");
 const rateLimit = require("express-rate-limit");
 const userRoutes = require('./routes/user.routes');
 const imageUploadRoutes = require('./routes/image.routes');
+const settleRoutes= require('./routes/settle.routes');
 
 const app = express();
 const baseUrl = process.env.BASE_URL;
@@ -40,6 +41,7 @@ app.use("/auth", authRoutes); // 인증 라우트
 app.use("/auth/email", authLimiter); // 이메일 인증 라우트
 app.use('/api/user', userRoutes); // 사용자 정보 조회 및 수정 라우트
 app.use('/api/image', imageUploadRoutes); // 이미지 업로드 라우트 // 프로필 텍스트 업로드 라우트
+app.use('/api/settle', settleRoutes); // 정산 라우트
 
 function buildTmapPoiUrl(query) {
   const url = new URL(tmapPoiBaseUrl);

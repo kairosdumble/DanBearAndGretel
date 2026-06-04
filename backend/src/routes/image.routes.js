@@ -3,7 +3,7 @@ const express = require("express");
 //사진, 동영상, PDF 같은 파일은 용량이 크고 데이터가 아주 복잡한 덩어리 형태로 쪼개져서 넘어옵니다.->multer를 사용하여 파일을 업로드
 const multer = require("multer");
 const { authenticate } = require("../middleware/auth.middleware");
-const imageUploadController = require("../controllers/image_upload.controller");
+const imageUploadController = require("../controllers/image.controller");
 const router = express.Router();
 
 const upload = multer({

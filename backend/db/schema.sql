@@ -98,6 +98,8 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     message TEXT NOT NULL, -- 메시지 내용
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() -- 생성시간
 );
+CREATE INDEX IF NOT EXISTS idx_chat_messages_reservation_created ON chat_messages (reservation_id, created_at, id);
+
 
 -- 예약별 결제 테이블
 -- 생성시점: 미터기 이미지 업로드 시점
@@ -107,8 +109,8 @@ CREATE TABLE IF NOT EXISTS payments (
     reservation_id INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE, -- 예약 항목 번호
     final_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- 결제한 사용자 id(최종 하차자)
     taximeter_image_url VARCHAR(255) NULL, -- 결제한 사용자의 택시 미터 이미지 URL
-    total_fare BIGINT NULL -- 총 요금 (예: 1500원은 1500)
+    --settle.service.js의 updateTotal 함수에서 fare 컬럼 추가함
 );
 
-CREATE INDEX IF NOT EXISTS idx_chat_messages_reservation_created
-    ON chat_messages (reservation_id, created_at, id);
+CREATE INDEX IF NOT EXISTS idx_payments_reservation ON payments (reservation_id,total_fare);
+CREATE INDEX IF NOT EXISTS idx_payments_final_user ON payments (reservation_id,final_user_id);
