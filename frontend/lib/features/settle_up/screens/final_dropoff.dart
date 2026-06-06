@@ -2,10 +2,13 @@ import 'dart:io';
 import "dart:developer" as developer;
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import '../../../data/colors.dart';
 
 import '../../chat/screens/mate_chat_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/images/taximeter_upload_api.dart'; // 미터기 사진 업로드 API 서비스
 import '../services/images/taximeter_extract_api.dart'; // 미터기 금액 인식 API 서비스
 
@@ -21,6 +24,8 @@ class FinalDropoffScreen extends StatefulWidget {
 class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
   // 정산 완료 여부를 나타내는 변수
   bool _isSettled = false;
+  // 로그인 시 저장해둔 토큰 가져오기 위한 FlutterSecureStorage 인스턴스
+  final storage = const FlutterSecureStorage();
   // 선택된 택시 미터기 사진 파일
   File? _selectedImageFile;
   // 택시 사진 업로드 후 반환된 이미지 URL을 저장하는 변수
@@ -129,16 +134,37 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
       );
       return;
     }
-    // 2. 서버로 데이터를 보내는 척하는 로직 (나중에 여기에 진짜 API 호출 코드를 넣을 거예요)
-    print("서버에 정산 시작 알림과 금액 $enteredFare 원을 보냄");
-    setState(() {
-      _isSettled = true; // 정산 완료 상태로 변경
-    });
-    // 3. 완료 후 사용자 피드백
-    if (!mounted) return; // 화면이 사라졌을 경우 에러 방지
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('정산 알림이 동승자들에게 전송되었습니다!')),
-    );
+    // 2. 서버로 전송할 데이터 준비
+    final int fareValue = int.tryParse(enteredFare) ?? 0;
+    final int resId = widget.matchData['id'] ?? 0;
+    // 로그인 시 저장해둔 토큰 가져오기 (이전 코드 참고)
+    final String? token = await storage.read(key: 'jwt_token'); 
+
+    try {
+      // 3. API 호출
+      final response = await http.post(
+        Uri.parse("http://10.0.2.2:3000/api/settles/$resId/total_upload"),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'fare': fareValue}),
+      );
+      // 4. 응답 확인 및 결과 처리
+      if (response.statusCode == 200) {
+        setState(() {
+          _isSettled = true;
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('정산 금액이 서버에 전달되었습니다!')));
+      } else {
+        print("서버 응답 오류: ${response.statusCode}");
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('서버 전송 실패')));
+      }
+    } catch (e) {
+      print("통신 실패: $e");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('통신 중 오류가 발생했습니다.')));
+    }
   }
   // 미터기 이미지 업로드
   Future<void> _pickAndUploadTaxiMeterImage(ImageSource source) async {

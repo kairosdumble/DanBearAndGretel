@@ -159,30 +159,35 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
   }
 
   // 1. 저장된 토큰을 가져오는 함수 (저장소 환경에 맞게 수정하세요)
-Future<String?> _getToken() async {
-  // 예: FlutterSecureStorage 사용 시
-  return await storage.read(key: 'jwt_token'); 
-}
-
-// 2. API 호출 부분
-Future<void> _processPayment() async {
-  String? token = await _getToken(); // 토큰을 가져옵니다.
-
-  if (token == null) {
-    // 토큰이 없으면 결제 불가
-    return;
+  Future<String?> _getToken() async {
+    // 예: FlutterSecureStorage 사용 시
+    return await storage.read(key: 'jwt_token'); 
   }
 
-  final response = await http.post(
-    Uri.parse("http://10.0.2.2:3000/api/settles/${widget.matchData?['id']}/total_upload"),
-    headers: {
-      'Content-Type': 'application/json',
-      // 여기서 서버가 원하는 'Authorization' 규격을 맞춥니다!
-      'Authorization': 'Bearer $token', 
-    },
-    body: jsonEncode({'fare': _fare}),
-  );
-  
-  // ... 이후 응답 처리
-}
+  // 2. API 호출 부분
+  Future<void> _processPayment() async {
+    String? token = await _getToken(); // 토큰 가져오기
+
+    if (token == null) {
+      // 토큰이 없으면 결제 불가
+      return;
+    }
+    try {
+      final response = await http.post(
+        Uri.parse("http://10.0.2.2:3000/api/settles/${widget.matchData?['id']}/pay"), // 팀원과 엔드포인트 확인 필요
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'fare': _fare}), 
+      );
+
+      if (response.statusCode == 200) {
+        setState(() { _isSettled = true; });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('정산이 완료되었습니다!')));
+      }
+    } catch (e) {
+      print("결제 오류: $e");
+    }
+  }
 }
