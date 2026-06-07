@@ -39,6 +39,10 @@ abstract class TmapUiSdkPlatform extends PlatformInterface {
     throw UnimplementedError('initSDK() has not been implemented.');
   }
 
+  Future<bool?> finalizeSDK() {
+    throw UnimplementedError('finalizeSDK() has not been implemented.');
+  }
+
   Future<bool?> configSDK(SDKConfig configInfo) {
     throw UnimplementedError('configSDK() has not been implemented.');
   }
@@ -52,11 +56,16 @@ abstract class TmapUiSdkPlatform extends PlatformInterface {
   }
 
   Future<bool?> clearContinueDriveInfo() {
-    throw UnimplementedError('clearContinueDriveInfo() has not been implemented.');
+    throw UnimplementedError(
+        'clearContinueDriveInfo() has not been implemented.');
   }
 
   Future<bool?> configMarker(UISDKMarkerConfig configInfo) {
     throw UnimplementedError('configMarker() has not been implemented.');
+  }
+
+  Future<bool?> setMapCenter(double latitude, double longitude, bool animated) {
+    throw UnimplementedError('setMapCenter() has not been implemented.');
   }
 
   Future<int> getMaxVolume() {

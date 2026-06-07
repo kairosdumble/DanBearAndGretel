@@ -1,4 +1,7 @@
 export 'package:tmap_ui_sdk/auth/data/auth_data.dart';
+export 'package:tmap_ui_sdk/config/marker/uisdk_marker.dart';
+export 'package:tmap_ui_sdk/config/marker/uisdk_marker_config.dart';
+export 'package:tmap_ui_sdk/config/marker/uisdk_marker_point.dart';
 export 'package:tmap_ui_sdk/auth/data/init_result.dart';
 export 'package:tmap_ui_sdk/route/data/planning_option.dart';
 export 'package:tmap_ui_sdk/route/data/route_point.dart';

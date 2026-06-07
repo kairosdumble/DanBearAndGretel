@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -21,7 +22,8 @@ import 'tmap_ui_sdk_platform_interface.dart';
 // ignore_for_file: constant_identifier_names
 /// An implementation of [TmapUiSdkPlatform] that uses method channels.
 class MethodChannelTmapUiSdk extends TmapUiSdkPlatform {
-  static const String CHANNEL_TMAPUISDK = 'com.tmapmobility.tmap.tmapsdk.flutter.tmapuisdk';
+  static const String CHANNEL_TMAPUISDK =
+      'com.tmapmobility.tmap.tmapsdk.flutter.tmapuisdk';
 
   static const String METHOD_GET_VERSION = 'getPlatformVersion';
 
@@ -30,9 +32,11 @@ class MethodChannelTmapUiSdk extends TmapUiSdkPlatform {
   static const String METHOD_FINALIZE_SDK = "finalizeSDK";
   static const String METHOD_CONFIG_SDK = "configSDK";
   static const String METHOD_CONFIG_MARKER = "configMarker";
+  static const String METHOD_SET_MAP_CENTER = "setMapCenter";
   static const String METHOD_STOP_DRIVING = "stopDriving";
   static const String METHOD_TO_NEXT_VIA_POINT = "toNextViaPointRequest";
-  static const String METHOD_CLEAR_CONTINUE_DRIVE_INFO = "clearContinueDriveInfo";
+  static const String METHOD_CLEAR_CONTINUE_DRIVE_INFO =
+      "clearContinueDriveInfo";
   static const String METHOD_GET_MAX_VOLUME = "getMaxVolume";
   static const String METHOD_GET_VOLUME = "getVolume";
   static const String METHOD_SET_VOLUME = "setVolume";
@@ -54,60 +58,53 @@ class MethodChannelTmapUiSdk extends TmapUiSdkPlatform {
 
   @override
   Future<String?> getPlatformVersion() async {
-    final version = await methodChannel.invokeMethod<String>(METHOD_GET_VERSION);
+    final version =
+        await methodChannel.invokeMethod<String>(METHOD_GET_VERSION);
     return version;
   }
 
   @override
   Future<InitResult?> initSDK(AuthData authInfo) async {
     final initResultString = await methodChannel.invokeMethod<String>(
-        METHOD_INIT_SDK_INIT,
-        {ARGS_METHOD:authInfo.toJsonString()}
-    );
+        METHOD_INIT_SDK_INIT, {ARGS_METHOD: authInfo.toJsonString()});
     return InitResult.getByText(initResultString ?? InitResult.notGranted.text);
   }
 
   @override
   Future<bool?> finalizeSDK() async {
-    final finalizeResultString = await methodChannel.invokeMethod<String>(
-        METHOD_FINALIZE_SDK
-    );
+    final finalizeResultString =
+        await methodChannel.invokeMethod<String>(METHOD_FINALIZE_SDK);
     return finalizeResultString?.toBoolean();
   }
 
   @override
   Future<bool?> configSDK(SDKConfig configInfo) async {
     final configResult = await methodChannel.invokeMethod<String>(
-        METHOD_CONFIG_SDK,
-        {ARGS_METHOD:configInfo.toJsonString()}
-    );
+        METHOD_CONFIG_SDK, {ARGS_METHOD: configInfo.toJsonString()});
 
     return configResult?.toBoolean();
   }
 
   @override
   Future<bool?> stopDriving() async {
-    final configResult = await methodChannel.invokeMethod<String>(
-        METHOD_STOP_DRIVING
-    );
+    final configResult =
+        await methodChannel.invokeMethod<String>(METHOD_STOP_DRIVING);
 
     return configResult?.toBoolean();
   }
 
   @override
   Future<bool?> clearContinueDriveInfo() async {
-    final configResult = await methodChannel.invokeMethod<String>(
-        METHOD_CLEAR_CONTINUE_DRIVE_INFO
-    );
+    final configResult = await methodChannel
+        .invokeMethod<String>(METHOD_CLEAR_CONTINUE_DRIVE_INFO);
 
     return configResult?.toBoolean();
   }
 
   @override
   Future<bool?> toNextViaPointRequest() async {
-    final configResult = await methodChannel.invokeMethod<String>(
-        METHOD_TO_NEXT_VIA_POINT
-    );
+    final configResult =
+        await methodChannel.invokeMethod<String>(METHOD_TO_NEXT_VIA_POINT);
 
     return configResult?.toBoolean();
   }
@@ -115,8 +112,23 @@ class MethodChannelTmapUiSdk extends TmapUiSdkPlatform {
   @override
   Future<bool?> configMarker(UISDKMarkerConfig configInfo) async {
     final configResult = await methodChannel.invokeMethod<String>(
-        METHOD_CONFIG_MARKER,
-        {ARGS_METHOD:configInfo.toJsonString()}
+        METHOD_CONFIG_MARKER, {ARGS_METHOD: configInfo.toJsonString()});
+
+    return configResult?.toBoolean();
+  }
+
+  @override
+  Future<bool?> setMapCenter(
+      double latitude, double longitude, bool animated) async {
+    final configResult = await methodChannel.invokeMethod<String>(
+      METHOD_SET_MAP_CENTER,
+      {
+        ARGS_METHOD: jsonEncode({
+          'latitude': latitude,
+          'longitude': longitude,
+          'animated': animated,
+        }),
+      },
     );
 
     return configResult?.toBoolean();
@@ -124,33 +136,25 @@ class MethodChannelTmapUiSdk extends TmapUiSdkPlatform {
 
   @override
   Future<int> getMaxVolume() async {
-    final volume = await methodChannel.invokeMethod<int>(
-      METHOD_GET_MAX_VOLUME
-    );
+    final volume = await methodChannel.invokeMethod<int>(METHOD_GET_MAX_VOLUME);
     return volume ?? -1;
   }
 
   @override
   Future<int> getVolume() async {
-    final volume = await methodChannel.invokeMethod<int>(
-      METHOD_GET_VOLUME
-    );
+    final volume = await methodChannel.invokeMethod<int>(METHOD_GET_VOLUME);
     return volume ?? -1;
   }
 
   @override
   Future<void> setVolume(int volume) async {
-    await methodChannel.invokeMethod<void>(
-      METHOD_SET_VOLUME,
-      {ARGS_METHOD: volume}
-    );
+    await methodChannel
+        .invokeMethod<void>(METHOD_SET_VOLUME, {ARGS_METHOD: volume});
   }
 
   @override
   Future<void> runSoundCheck() async {
-    await methodChannel.invokeMethod<void>(
-      METHOD_RUN_SOUND_CHECK
-    );
+    await methodChannel.invokeMethod<void>(METHOD_RUN_SOUND_CHECK);
   }
 
   @override
@@ -230,8 +234,8 @@ class MethodChannelTmapUiSdk extends TmapUiSdkPlatform {
   void _startTmapDriveGuideEventStream() {
     _tmapDriveGuideStreamSubscription =
         TmapDriveGuideEvent.readings.listen((TmapDriveGuide driveGuide) {
-          _tmapDriveGuideController?.add(driveGuide);
-        });
+      _tmapDriveGuideController?.add(driveGuide);
+    });
   }
 
   FutureOr<void> _onTmapDriveGuideStreamCancel() async {
@@ -239,7 +243,6 @@ class MethodChannelTmapUiSdk extends TmapUiSdkPlatform {
     _tmapDriveGuideStreamSubscription = null;
     _tmapDriveGuideController = null;
   }
-
 
   @override
   Stream<TmapDriveStatus> onStreamedTmapDriveStatus() {
@@ -260,8 +263,8 @@ class MethodChannelTmapUiSdk extends TmapUiSdkPlatform {
   void _startTmapDriveStatusEventStream() {
     _tmapDriveStatusStreamSubscription =
         TmapDriveStatusEvent.readings.listen((TmapDriveStatus driveStatus) {
-          _tmapDriveStatusController?.add(driveStatus);
-        });
+      _tmapDriveStatusController?.add(driveStatus);
+    });
   }
 
   FutureOr<void> _onTmapDriveStatusStreamCancel() async {

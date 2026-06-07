@@ -106,6 +106,19 @@ class TmapUiSdkPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         if (ConfigMarkerModel.model == null) {
           result.success("false")
         } else {
+          TmapUiSdkView.applyCurrentMarkerConfig()
+          result.success("true")
+        }
+      }
+      "setMapCenter" -> {
+        val json = call.argument<String>("args")?.let { JSONObject(it) }
+        val latitude = json?.optDouble("latitude")
+        val longitude = json?.optDouble("longitude")
+        val animated = json?.optBoolean("animated", true) ?: true
+        if (latitude == null || longitude == null) {
+          result.success("false")
+        } else {
+          TmapUiSdkView.setCurrentMapCenter(latitude, longitude, animated)
           result.success("true")
         }
       }

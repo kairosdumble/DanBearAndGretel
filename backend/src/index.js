@@ -1,4 +1,3 @@
-// 서버 진입점입니다. Express 서버를 설정하고 PostgreSQL 데이터베이스와 연결합니다.
 require("dotenv").config();
 
 const express = require("express");
@@ -7,12 +6,14 @@ const pool = require("./db/pool");
 const ensureChatSchema = require("./db/ensureChatSchema");
 const authRoutes = require("./routes/auth.routes");
 const rateLimit = require("express-rate-limit");
-const userRoutes = require('./routes/user.routes');
-const imageUploadRoutes = require('./routes/image.routes');
-const settleRoutes= require('./routes/settle.routes');
+const userRoutes = require("./routes/user.routes");
+const imageUploadRoutes = require("./routes/image.routes");
+const settleRoutes = require("./routes/settle.routes");
+const reservationRoutes = require("./routes/reservation.routes");
+const chatRoutes = require("./routes/chat.routes");
 
 const app = express();
-const baseUrl = process.env.BASE_URL;
+const baseUrl = process.env.BASE_URL || `http://0.0.0.0:${process.env.PORT || 3000}`;
 const port = Number(process.env.PORT) || 3000;
 const tmapApiKey = process.env.TMAP_API_KEY || process.env.TMAP_APP_KEY || "";
 const tmapPoiBaseUrl = "https://apis.openapi.sk.com/tmap/pois";
@@ -21,27 +22,29 @@ const defaultSearchCount = Number(process.env.SEARCH_COUNT) || 20;
 const databaseUrl = process.env.DATABASE_URL;
 
 const authLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5분
-  max: 10, // 5분에 10회
+  windowMs: 5 * 60 * 1000,
+  max: 10,
   message: { message: "요청이 너무 많습니다. 잠시 후 다시 시도하세요." },
 });
 
 if (!databaseUrl) {
-  throw new Error("DATABASE_URL 환경변수가 설정되지 않았습니다.");
+  throw new Error("DATABASE_URL environment variable is not configured.");
 }
 
 ensureChatSchema().catch((error) => {
-  // eslint-disable-next-line no-console
   console.error("[chat schema]", error);
 });
 
 app.use(cors());
-app.use(express.json()); 
-app.use("/auth", authRoutes); // 인증 라우트
-app.use("/auth/email", authLimiter); // 이메일 인증 라우트
-app.use('/api/user', userRoutes); // 사용자 정보 조회 및 수정 라우트
-app.use('/api/image', imageUploadRoutes); // 이미지 업로드 라우트 // 프로필 텍스트 업로드 라우트
-app.use('/api/settle', settleRoutes); // 정산 라우트
+app.use(express.json());
+
+app.use("/auth/email", authLimiter);
+app.use("/auth", authRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/image", imageUploadRoutes);
+app.use("/api/settle", settleRoutes);
+app.use("/api/reservations", reservationRoutes);
+app.use("/api/chats", chatRoutes);
 
 function buildTmapPoiUrl(query) {
   const url = new URL(tmapPoiBaseUrl);
@@ -172,9 +175,7 @@ async function searchTmapPois(query) {
       throw error;
     }
 
-    return extractPois(payload)
-      .map(normalizePoi)
-      .filter(Boolean);
+    return extractPois(payload).map(normalizePoi).filter(Boolean);
   } finally {
     clearTimeout(timeout);
   }
@@ -230,23 +231,16 @@ app.get("/", (_req, res) => {
   res.json({ message: "Dangretel API" });
 });
 
-const server = app.listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Server listening on ${baseUrl}:${port}`);
+const server = app.listen(port, "0.0.0.0", () => {
+  console.log(`Server listening on ${baseUrl}`);
 });
 
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
-    // eslint-disable-next-line no-console
     console.error(
-      `[EADDRINUSE] 포트 ${port}가 이미 사용 중입니다. 다른 터미널의 node 서버를 종료하거나, .env에 PORT=3001 처럼 다른 포트를 지정하세요.`
+      `[EADDRINUSE] Port ${port} is already in use. Stop the other server or change PORT.`,
     );
     process.exit(1);
   }
   throw err;
 });
-
-const reservationRoutes = require('./routes/reservation.routes');
-app.use('/api/reservations', reservationRoutes);
-const chatRoutes = require('./routes/chat.routes');
-app.use('/api/chats', chatRoutes);

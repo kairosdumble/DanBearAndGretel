@@ -20,7 +20,8 @@ typedef onTmapDriveStatusAvailable = Function(TmapDriveStatus status);
 
 class TmapUISDKManager {
   TmapUISDKManager._privateConstructor();
-  static final TmapUISDKManager _instance = TmapUISDKManager._privateConstructor();
+  static final TmapUISDKManager _instance =
+      TmapUISDKManager._privateConstructor();
 
   factory TmapUISDKManager() {
     return _instance;
@@ -65,6 +66,16 @@ class TmapUISDKManager {
   Future<bool?> configMarker(UISDKMarkerConfig configInfo) async {
     MethodChannelTmapUiSdk channel = MethodChannelTmapUiSdk();
     final result = await channel.configMarker(configInfo);
+    return result;
+  }
+
+  Future<bool?> setMapCenter(
+    double latitude,
+    double longitude, {
+    bool animated = true,
+  }) async {
+    MethodChannelTmapUiSdk channel = MethodChannelTmapUiSdk();
+    final result = await channel.setMapCenter(latitude, longitude, animated);
     return result;
   }
 

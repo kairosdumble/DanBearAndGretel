@@ -4,12 +4,10 @@ import 'package:frontend/core/widgets/search_box_button.dart';
 
 import '../../nearby_mate_list/screens/nearby_mate_list.dart';
 import '../../route_search/screens/place_search.dart';
+import '../../setting/screens/setting_screen.dart';
+import '../../settle_up/screens/final_dropoff.dart';
 import 'place.dart';
 import 'tmap_view.dart';
-
-import '../../settle_up/screens/final_dropoff.dart';
-import '../../settle_up/screens/intermediate_dropoff.dart';
-import '../../setting/screens/setting_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -57,12 +55,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final canFindMate = _departure != null && _destination != null; // 출발지, 목적지 입력 완료시 동승자 찾기 버튼 활성화
+    final canFindMate = _departure != null && _destination != null;
     final matchData = {
       'departure': _departure?.name ?? '출발지 정보 없음',
       'destination': _destination?.name ?? '목적지 정보 없음',
-      'fare': 100000000, // [TODO] 실제 요금 계산 로직 필요
+      'fare': 100000000,
     };
+
     return Scaffold(
       body: Stack(
         children: [
@@ -79,7 +78,10 @@ class _HomePageState extends State<HomePage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(15),
-                child: const TMapView(),
+                child: TMapView(
+                  departure: _departure,
+                  destination: _destination,
+                ),
               ),
             ),
           ),
@@ -128,11 +130,14 @@ class _HomePageState extends State<HomePage> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => 
-                                FinalDropoffScreen(key: null, matchData: matchData)),
-                                //const IntermediateDropoffScreen(matchData: null,)),
+                              MaterialPageRoute(
+                                builder: (context) => FinalDropoffScreen(
+                                  key: null,
+                                  matchData: matchData,
+                                ),
+                              ),
                             );
-                          }, 
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE0E0E0),
                             foregroundColor: Colors.black,
@@ -205,13 +210,15 @@ class _HomePageState extends State<HomePage> {
             child: IconButton(
               icon: const Icon(Icons.settings, size: 28, color: Colors.black54),
               onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingScreen()),
-              );
-            },
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingScreen(),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
         ],
       ),
     );

@@ -189,10 +189,30 @@ class FlutterDrivingStatusCallback(activity: FragmentActivity?): TmapUISDK.Drivi
 
 }
 
+data class PendingMapCenter(
+  val latitude: Double,
+  val longitude: Double,
+  val animated: Boolean,
+)
+
 class TmapUiSdkView(
   context: Context,
   creationParams: Map<*, *>?,
 ) : PlatformView {
+  companion object {
+    private var currentView: TmapUiSdkView? = null
+    private var pendingMapCenter: PendingMapCenter? = null
+
+    fun applyCurrentMarkerConfig() {
+      currentView?.setMarker()
+    }
+
+    fun setCurrentMapCenter(latitude: Double, longitude: Double, animated: Boolean) {
+      pendingMapCenter = PendingMapCenter(latitude, longitude, animated)
+      currentView?.applyPendingMapCenter()
+    }
+  }
+
   private val TAG = "TmapUiSdkView"
   private val _context: Context
   private val navigationFragment: NavigationFragment
@@ -201,9 +221,11 @@ class TmapUiSdkView(
   private val navigationRequestModel: NavigationRequestModel?
   private var routeRequested: Boolean = false
   private var getViewCalledCount = 0
+  private val selectedMarkerIds = mutableSetOf<String>()
 
   private var driveStatusChangedListener : FlutterDrivingStatusCallback? = null
   init {
+    currentView = this
     _context = context
     viewId = View.generateViewId()
     val json = creationParams?.let { JSONObject(it) }
@@ -372,6 +394,7 @@ class TmapUiSdkView(
           }
         }
         setMarker()
+        applyPendingMapCenter()
       }
       Log.d(TAG,"getView() Ends -----------")
     }
@@ -379,6 +402,9 @@ class TmapUiSdkView(
   }
 
   override fun dispose() {
+    if (currentView == this) {
+      currentView = null
+    }
     // 붙어있던 fragment를 삭제한다.
     val activity = _context.getFragmentActivity()
     val fm: FragmentManager? = activity?.supportFragmentManager
@@ -403,14 +429,27 @@ class TmapUiSdkView(
     return null
   }
 
+  private fun applyPendingMapCenter() {
+    val center = pendingMapCenter ?: return
+    val mapView = navigationFragment.getMapView() ?: return
+    mapView.setMapCenter(center.longitude, center.latitude, center.animated)
+  }
+
   private fun setMarker() {
     val makerManager = navigationFragment.getMapView()?.markerManager
     val configMarker: ConfigMarkerModel? = ConfigMarkerModel.model
+    if (makerManager != null) {
+      selectedMarkerIds.forEach { makerManager.removeMarker(it) }
+      selectedMarkerIds.clear()
+    }
     if (makerManager != null && configMarker != null) {
       val markers = configMarker.markers
       if (markers != null && markers.isNotEmpty()) {
         for (marker in markers) {
           val customRID = marker.markerId
+          if (customRID != null) {
+            selectedMarkerIds.add(customRID)
+          }
           val filePath = marker.imageName
           val markIcon = BitmapFactory.decodeFile(filePath)
           if (marker.markerType == MarkerType.POINT) {
