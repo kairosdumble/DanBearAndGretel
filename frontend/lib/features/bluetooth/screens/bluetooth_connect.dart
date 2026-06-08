@@ -1,8 +1,10 @@
+//방장 제외, 동승자 블루투스 연결 화면
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:frontend/data/colors.dart';
+import 'package:frontend/features/bluetooth/services/ble_proximity_service.dart';
 import 'package:frontend/features/bluetooth/services/bluetooth_readiness_service.dart';
 import 'package:frontend/features/bluetooth/services/proximity_match_api.dart';
 
@@ -24,13 +26,18 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
   StreamSubscription<BluetoothAdapterState>? _adapterSubscription;
   StreamSubscription<List<ScanResult>>? _scanSubscription;
   Timer? _elapsedTimer;
+  Timer? _presenceTimer;
+  Timer? _approvalPollTimer;
 
   bool _isSubmitting = false;
   bool _isBluetoothReady = false;
+  bool _canApprove = false;
+  String _approvalMessage = '방장의 확정 요청을 기다리는 중입니다.';
   int _nearbyCount = 0;
   int _elapsedSeconds = 0;
 
-  bool get _canCompleteMatch => _isBluetoothReady && !_isSubmitting;
+  bool get _canCompleteMatch =>
+      _isBluetoothReady && !_isSubmitting && _canApprove;
 
   @override
   void initState() {
@@ -40,7 +47,50 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
       duration: const Duration(seconds: 2),
     )..repeat();
     _startElapsedTimer();
+    _startPresenceLoop();
+    _startApprovalPolling();
     _initBluetoothMonitoring();
+  }
+
+  void _startPresenceLoop() {
+    _sendPresence();
+    _presenceTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _sendPresence();
+    });
+  }
+
+  Future<void> _sendPresence() async {
+    final ok = await ProximityMatchApi.sendPresence(widget.reservationId);
+    if (!mounted || ok) return;
+    setState(() {
+      _approvalMessage = '서버에 연결 상태를 전송하지 못했습니다. 네트워크를 확인해 주세요.';
+    });
+  }
+
+  void _startApprovalPolling() {
+    _refreshApprovalStatus();
+    _approvalPollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _refreshApprovalStatus();
+    });
+  }
+
+  Future<void> _refreshApprovalStatus() async {
+    final status = await ProximityMatchApi.fetchApprovalStatus(
+      widget.reservationId,
+    );
+    if (!mounted || status == null) return;
+
+    if (status.mode == 'matched') {
+      Navigator.of(context).pop(true);
+      return;
+    }
+
+    setState(() {
+      _canApprove = status.canApprove;
+      if (status.message.isNotEmpty) {
+        _approvalMessage = status.message;
+      }
+    });
   }
 
   void _startElapsedTimer() {
@@ -82,11 +132,26 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
       );
       _scanSubscription = FlutterBluePlus.scanResults.listen((results) {
         if (!mounted) return;
-        final uniqueDevices = results
+        final bleUsers = <NearbyBleUser>[];
+        for (final result in results) {
+          final parsed = BleProximityService.parseScanResult(
+            result,
+            expectedReservationId: widget.reservationId,
+          );
+          if (parsed != null) {
+            bleUsers.add(parsed);
+          }
+        }
+        final strongSignals = results
+            .where((result) => BleProximityService.passesRssiFilter(result.rssi))
             .map((result) => result.device.remoteId.str)
             .toSet()
             .length;
-        setState(() => _nearbyCount = uniqueDevices);
+        setState(() {
+          _nearbyCount = bleUsers.isNotEmpty
+              ? BleProximityService.mergeUsers(bleUsers).length
+              : strongSignals;
+        });
       });
     } catch (_) {
       if (mounted) setState(() => _nearbyCount = 0);
@@ -112,6 +177,8 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
   @override
   void dispose() {
     _elapsedTimer?.cancel();
+    _presenceTimer?.cancel();
+    _approvalPollTimer?.cancel();
     _adapterSubscription?.cancel();
     _stopNearbyScan();
     _animationController.dispose();
@@ -123,15 +190,16 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
 
     setState(() => _isSubmitting = true);
     try {
-      final ok = await ProximityMatchApi.confirm(widget.reservationId);
+      final result = await ProximityMatchApi.confirm(widget.reservationId);
       if (!mounted) return;
-      if (ok) {
+      if (result.success) {
         Navigator.of(context).pop(true);
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('매칭 확정에 실패했습니다. 다시 시도해 주세요.')),
+        SnackBar(content: Text(result.message)),
       );
+      await _refreshApprovalStatus();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -146,7 +214,9 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final buttonLabel = _canCompleteMatch ? '매칭 완료' : '검색 중...';
+    final buttonLabel = _canCompleteMatch
+        ? '매칭 승인'
+        : (_isBluetoothReady ? '승인 대기 중...' : '검색 중...');
 
     return Scaffold(
       backgroundColor: AuthColors.white,
@@ -244,14 +314,17 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              '블루투스를 통해 주변 동승자를 찾고 있습니다.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AuthColors.grayText,
-                height: 1.4,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Text(
+                _approvalMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AuthColors.grayText,
+                  height: 1.4,
+                ),
               ),
             ),
             const SizedBox(height: 20),

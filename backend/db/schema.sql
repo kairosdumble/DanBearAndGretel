@@ -104,6 +104,33 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_reservation_created ON chat_messages (reservation_id, created_at, id);
+
+-- BLE 근접 매칭: 방장 요청 + 참여자 승인
+CREATE TABLE IF NOT EXISTS reservation_proximity_requests (
+    id SERIAL PRIMARY KEY,
+    reservation_id INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+    leader_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    selected_user_ids INTEGER[] NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS reservation_proximity_approvals (
+    request_id INTEGER NOT NULL REFERENCES reservation_proximity_requests(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    approved_at TIMESTAMPTZ,
+    PRIMARY KEY (request_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_proximity_requests_reservation_status
+    ON reservation_proximity_requests (reservation_id, status);
+
+CREATE TABLE IF NOT EXISTS reservation_proximity_presence (
+    reservation_id INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (reservation_id, user_id)
+);
 -- 예약별 결제 테이블
 -- 생성시점: 미터기 이미지 업로드 시점
 -- 정산은 reservation_bluetooth_participants 테이블에 존재하는 사람들과 거리를 기준으로 계산

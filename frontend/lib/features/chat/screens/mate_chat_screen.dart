@@ -7,8 +7,9 @@ import 'package:http/http.dart' as http;
 import 'package:frontend/data/colors.dart';
 
 import 'package:frontend/core/auth/auth_token_storage.dart';
-
+import 'package:frontend/core/auth/auth_user_id.dart';
 import 'package:frontend/features/bluetooth/screens/bluetooth_connect.dart';
+import 'package:frontend/features/bluetooth/screens/bluetooth_leader.dart';
 import 'package:frontend/features/bluetooth/services/proximity_match_api.dart';
 import 'package:frontend/features/nearby_mate_list/screens/nearby_mate_list.dart';
 
@@ -153,12 +154,23 @@ class _MateChatScreenState extends State<MateChatScreen> {
     super.dispose();
   }
 
+  Future<bool> _isReservationLeader() async {
+    final token = await AuthTokenStorage.getToken();
+    final currentUserId = token == null ? null : parseUserIdFromToken(token);
+    final ownerId = int.tryParse(_reservation?['user_id']?.toString() ?? '');
+    if (currentUserId == null || ownerId == null) return false;
+    return currentUserId == ownerId;
+  }
+
   Future<void> _openBluetoothMatching() async {
+    final isLeader = await _isReservationLeader();
+    if (!mounted) return;
+
     final matched = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => BluetoothMatchingScreen(
-          reservationId: widget.reservationId,
-        ),
+        builder: (_) => isLeader
+            ? BluetoothLeaderScreen(reservationId: widget.reservationId)
+            : BluetoothMatchingScreen(reservationId: widget.reservationId),
       ),
     );
     if (matched == true && mounted) {

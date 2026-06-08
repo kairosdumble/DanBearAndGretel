@@ -58,7 +58,7 @@ class _ChargeScreenState extends State<chargeScreen> {
             const SizedBox(height: 20),
             
             Row(
-              children: [3000, 5000, 10000, 30000].map((amt) => Expanded(
+              children: [ 5000, 10000, 50000].map((amt) => Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: OutlinedButton(
@@ -72,7 +72,6 @@ class _ChargeScreenState extends State<chargeScreen> {
               )).toList(),
             ),
             const SizedBox(height: 30),
-
             // 금액 표시 및 직접 입력 필드
             TextField(
               controller: _amountController,
@@ -87,7 +86,7 @@ class _ChargeScreenState extends State<chargeScreen> {
             // 최종 확인 버튼
             SizedBox(
               width: double.infinity,
-              height: 55,
+              height: 50,
               child: ElevatedButton(
                 onPressed: () async {
                   int amount = int.tryParse(_amountController.text) ?? 0;
@@ -103,6 +102,7 @@ class _ChargeScreenState extends State<chargeScreen> {
                 child: const Text("확인", style: TextStyle(fontSize: 18)),
               ),
             ),
+            const SizedBox(height: 30),
           ],
         ),
       ),

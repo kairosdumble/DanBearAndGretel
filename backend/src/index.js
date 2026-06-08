@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const pool = require("./db/pool");
 const ensureChatSchema = require("./db/ensureChatSchema");
+const ensureProximitySchema = require("./db/ensureProximitySchema");
 const authRoutes = require("./routes/auth.routes");
 const rateLimit = require("express-rate-limit");
 const userRoutes = require("./routes/user.routes");
@@ -33,6 +34,10 @@ if (!databaseUrl) {
 
 ensureChatSchema().catch((error) => {
   console.error("[chat schema]", error);
+});
+
+ensureProximitySchema().catch((error) => {
+  console.error("[proximity schema]", error);
 });
 
 app.use(cors());

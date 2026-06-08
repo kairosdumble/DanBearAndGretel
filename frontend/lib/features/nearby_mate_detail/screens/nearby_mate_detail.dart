@@ -8,8 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:frontend/core/auth/auth_token_storage.dart';
-import 'package:frontend/core/widgets/search_box_button.dart';
 import 'package:frontend/features/home/screens/place.dart';
 import 'package:frontend/features/route_search/screens/place_search.dart';
 import 'package:frontend/features/nearby_mate_list/screens/nearby_mate_list.dart';

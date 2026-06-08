@@ -8,7 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../data/colors.dart';
 
 import '../../chat/screens/mate_chat_screen.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:frontend/core/auth/auth_token_storage.dart';
 import '../services/images/taximeter_upload_api.dart'; // 미터기 사진 업로드 API 서비스
 import '../services/images/taximeter_extract_api.dart'; // 미터기 금액 인식 API 서비스
 
@@ -25,7 +25,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
   // 정산 완료 여부를 나타내는 변수
   bool _isSettled = false;
   // 로그인 시 저장해둔 토큰 가져오기 위한 FlutterSecureStorage 인스턴스
-  final storage = const FlutterSecureStorage();
+  final storage = AuthTokenStorage();
   // 선택된 택시 미터기 사진 파일
   File? _selectedImageFile;
   // 택시 사진 업로드 후 반환된 이미지 URL을 저장하는 변수
@@ -138,7 +138,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
     final int fareValue = int.tryParse(enteredFare) ?? 0;
     final int resId = widget.matchData['id'] ?? 0;
     // 로그인 시 저장해둔 토큰 가져오기 (이전 코드 참고)
-    final String? token = await storage.read(key: 'jwt_token'); 
+    final String? token = await AuthTokenStorage.getToken(); 
 
     try {
       // 3. API 호출

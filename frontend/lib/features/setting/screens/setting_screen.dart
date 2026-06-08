@@ -171,7 +171,7 @@ class _SettingScreenState extends State<SettingScreen> {
         
         _buildListTile(
           title: '남은 잔액',
-          trailingText: balance,
+          trailingText: '$balance원',
         ),
         _buildListTile(
           title: '출금 계좌',

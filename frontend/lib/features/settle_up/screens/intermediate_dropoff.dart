@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:frontend/core/auth/auth_token_storage.dart';
 
 class IntermediateDropoffScreen extends StatefulWidget {
   final Map<String, dynamic>? matchData;
@@ -21,7 +21,7 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
   bool _isLoading = true; // 금액 정보 로딩 여부
   bool _isSettled = false; // 정산 완료 여부
 
-  final storage = const FlutterSecureStorage(); // 토큰 저장소
+  final storage = AuthTokenStorage();
   
   @override
   void initState() {
@@ -161,7 +161,7 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
   // 1. 저장된 토큰을 가져오는 함수 (저장소 환경에 맞게 수정하세요)
   Future<String?> _getToken() async {
     // 예: FlutterSecureStorage 사용 시
-    return await storage.read(key: 'jwt_token'); 
+    return await AuthTokenStorage.getToken(); 
   }
 
   // 2. API 호출 부분
