@@ -6,9 +6,9 @@ const path = require('path');
 // .env에 저장된 DATABASE_URL 사용 (Render 전용)
 const client = new Client({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false // Render DB 접속 필수 설정
-  }
+  ssl: process.env.NODE_ENV === 'production' 
+  ? { rejectUnauthorized: false } 
+  : false // Render DB 접속 필수 설정
 });
 
 async function run() {
