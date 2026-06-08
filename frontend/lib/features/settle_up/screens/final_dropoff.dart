@@ -32,6 +32,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
   SettlementData? _settlementData;
   bool _isLoadingSettlement = true;
   bool _isUploadingImage = false;
+  bool _isRequestingSettlement = false;
   String? _error;
 
   @override
@@ -205,6 +206,34 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
     );
   }
 
+  Future<void> _requestSettlement() async {
+    final reservationId = _reservationId;
+    if (reservationId <= 0 || _isRequestingSettlement) return;
+
+    setState(() => _isRequestingSettlement = true);
+    try {
+      await SettlementApi.requestSettlement(
+        reservationId: reservationId,
+        totalFare: _totalFare,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('정산 알림을 보냈습니다.')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isRequestingSettlement = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = _settlementData;
@@ -271,6 +300,29 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
                       myFare: myFare,
                       finalSettlerName: finalSettler?.displayName ?? '최종 정산자',
                     ),
+                    if (isFinalSettler) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _isRequestingSettlement
+                              ? null
+                              : _requestSettlement,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AuthColors.bluePrimary,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text(
+                            _isRequestingSettlement ? '요청 중' : '정산하기',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     if (settlement != null)
                       _SettlementBreakdown(data: data, settlement: settlement),

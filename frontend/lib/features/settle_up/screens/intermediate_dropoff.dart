@@ -18,7 +18,9 @@ class IntermediateDropoffScreen extends StatefulWidget {
 
 class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
   SettlementData? _settlementData;
+  Map<String, dynamic>? _settlementStatus;
   bool _loading = true;
+  bool _transferring = false;
   String? _error;
 
   int get _reservationId {
@@ -28,18 +30,23 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
     return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  double get _totalFare {
-    final fare = widget.matchData?['fare'];
-    if (fare is num && fare > 0) return fare.toDouble();
-    return 18000;
+  bool get _settlementRequested => _settlementStatus?['requested'] == true;
+
+  double? get _requestedTotalFare {
+    final statusFare = _settlementStatus?['total_fare'];
+    if (statusFare is num && statusFare > 0) return statusFare.toDouble();
+    return null;
   }
 
   SettlementResult? get _settlement {
     final data = _settlementData;
-    if (data == null) return null;
+    final totalFare = _requestedTotalFare;
+    if (data == null || !_settlementRequested || totalFare == null) {
+      return null;
+    }
     return calculateSettlement(
       passengers: data.passengers,
-      totalFare: _totalFare,
+      totalFare: totalFare,
       creatorId: data.reservation.creatorId,
     );
   }
@@ -67,9 +74,11 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
 
     try {
       final data = await SettlementApi.fetchSettlement(reservationId);
+      final status = await SettlementApi.fetchSettlementStatus(reservationId);
       if (!mounted) return;
       setState(() {
         _settlementData = data;
+        _settlementStatus = status;
         _loading = false;
       });
     } catch (error) {
@@ -93,6 +102,32 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
     );
   }
 
+  Future<void> _transfer() async {
+    final reservationId = _reservationId;
+    if (reservationId <= 0 || _transferring) return;
+
+    setState(() => _transferring = true);
+    try {
+      await SettlementApi.transferSettlement(reservationId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('송금이 완료되었습니다.')));
+      await _loadSettlement();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _transferring = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = _settlementData;
@@ -105,6 +140,9 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
     final finalSettler = settlement?.finalSettler;
     final myFare = settlement?.fareByPassenger[currentUserId] ?? 0;
     final isFinalSettler = finalSettler?.id == currentUserId;
+    final settlementRequested = _settlementRequested;
+    final requestedTotalFare = _requestedTotalFare;
+    final paid = _settlementStatus?['paid'] == true;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -165,30 +203,76 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
                             currentPassenger?.dropoffDistanceMeters ?? 0,
                           ),
                         ),
-                        _InfoRow('총 결제금액', formatCurrency(_totalFare)),
+                        _InfoRow(
+                          '총 결제금액',
+                          requestedTotalFare == null
+                              ? '정산 요청 대기'
+                              : formatCurrency(requestedTotalFare),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     _InfoCard(
                       title: '내 정산',
-                      children: [
-                        _InfoRow('내 결제금액', formatCurrency(myFare)),
-                        _InfoRow(
-                          '최종 정산자',
-                          finalSettler?.displayName ?? '최종 정산자',
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          isFinalSettler
-                              ? '최종 정산자는 내 금액만 확인하면 됩니다.'
-                              : '${finalSettler?.displayName ?? '최종 정산자'}에게 ${formatCurrency(myFare)} 송금하세요.',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AuthColors.bluePrimary,
-                          ),
-                        ),
-                      ],
+                      children: settlement == null
+                          ? const [
+                              Text(
+                                '최종 정산자가 총 결제금액 입력 후 정산하기를 누르면 금액이 표시됩니다.',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AuthColors.grayText,
+                                ),
+                              ),
+                            ]
+                          : [
+                              _InfoRow('내 결제금액', formatCurrency(myFare)),
+                              _InfoRow(
+                                '최종 정산자',
+                                finalSettler?.displayName ?? '최종 정산자',
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                isFinalSettler
+                                    ? '최종 정산자는 내 금액만 확인하면 됩니다.'
+                                    : '${finalSettler?.displayName ?? '최종 정산자'}에게 ${formatCurrency(myFare)} 송금하세요.',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AuthColors.bluePrimary,
+                                ),
+                              ),
+                              if (!isFinalSettler) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 46,
+                                  child: ElevatedButton(
+                                    onPressed:
+                                        !settlementRequested ||
+                                            paid ||
+                                            _transferring
+                                        ? null
+                                        : _transfer,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AuthColors.bluePrimary,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: Text(
+                                      paid
+                                          ? '송금 완료'
+                                          : _transferring
+                                          ? '송금 중'
+                                          : '송금하기',
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                     ),
                     const SizedBox(height: 16),
                     if (settlement != null)

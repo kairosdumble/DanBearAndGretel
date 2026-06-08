@@ -1,10 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const SettleController = require("../controllers/settle.controller");
+const settleController = require("../controllers/settle.controller");
 const { authenticate } = require("../middleware/auth.middleware");
 
 router.use(authenticate);
 
-router.post("/:reservationId/total_upload", SettleController.createSettle); // 정산 생성
+router.get("/notification", settleController.getSettlementNotification);
+router.get("/:reservationId/status", settleController.getSettlementStatus);
+router.post("/:reservationId/request", settleController.requestSettlement);
+router.post("/:reservationId/transfer", settleController.transferSettlement);
 
 module.exports = router;

@@ -12,7 +12,8 @@ async function ensureProximitySchema() {
         ADD COLUMN IF NOT EXISTS fare BIGINT NULL,
         ADD COLUMN IF NOT EXISTS destination_location TEXT NULL,
         ADD COLUMN IF NOT EXISTS destination_lat DOUBLE PRECISION NULL,
-        ADD COLUMN IF NOT EXISTS destination_lng DOUBLE PRECISION NULL;
+        ADD COLUMN IF NOT EXISTS destination_lng DOUBLE PRECISION NULL,
+        ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ NULL;
     `);
     await pool.query(`
         CREATE UNIQUE INDEX IF NOT EXISTS idx_reservation_bluetooth_participants_unique
@@ -70,15 +71,17 @@ async function confirm(reservationId, userId, participantDestination = {}) {
                 user_id,
                 destination_location,
                 destination_lat,
-                destination_lng
+                destination_lng,
+                confirmed_at
             )
-            SELECT $1, $2, $3, $4, $5
+            SELECT $1, $2, $3, $4, $5, NOW()
             WHERE EXISTS (SELECT 1 FROM reservations WHERE id = $1)
             ON CONFLICT (reservation_id, user_id) DO UPDATE
             SET
                 destination_location = COALESCE(EXCLUDED.destination_location, reservation_bluetooth_participants.destination_location),
                 destination_lat = COALESCE(EXCLUDED.destination_lat, reservation_bluetooth_participants.destination_lat),
-                destination_lng = COALESCE(EXCLUDED.destination_lng, reservation_bluetooth_participants.destination_lng)
+                destination_lng = COALESCE(EXCLUDED.destination_lng, reservation_bluetooth_participants.destination_lng),
+                confirmed_at = NOW()
             RETURNING *;
             `,
             values,

@@ -1,20 +1,95 @@
-const pool = require('../db/pool');
-const settleService = require('../services/settle.service');
+const settleService = require("../services/settle.service");
 
-async function createSettle(req, res) {
-  try {
-    const { userId } = req.user;
-    const { fare } = req.body;
-    const { reservationId } = req.params;
-    const updated = await settleService.updateTotal(reservationId, { fare });
-
-    if (!updated) {
-        return res.status(404).json({ message: "해당 예약을 찾을 수 없거나 권한이 없습니다." });
-    }
-    res.status(200).json(updated);
-  } catch (error) {
-      res.status(500).json({ message: "수정 중 오류 발생", error: error.message });
-  }
+function parseReservationId(req) {
+    const reservationId = Number(req.params.reservationId);
+    return Number.isInteger(reservationId) && reservationId > 0
+        ? reservationId
+        : null;
 }
 
-module.exports = { createSettle };
+async function getSettlementStatus(req, res) {
+    try {
+        const reservationId = parseReservationId(req);
+        if (!reservationId) {
+            return res.status(400).json({ message: "예약 ID가 필요합니다." });
+        }
+
+        const status = await settleService.getStatus(reservationId, req.user.id);
+        if (!status) {
+            return res.status(404).json({ message: "예약 정보를 찾을 수 없습니다." });
+        }
+        return res.status(200).json(status);
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            message: error.message || "정산 상태 조회 중 오류가 발생했습니다.",
+        });
+    }
+}
+
+async function getSettlementNotification(req, res) {
+    try {
+        const notification = await settleService.getNotification(req.user.id);
+        return res.status(200).json(notification);
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            message: error.message || "정산 알림 조회 중 오류가 발생했습니다.",
+        });
+    }
+}
+
+async function requestSettlement(req, res) {
+    try {
+        const reservationId = parseReservationId(req);
+        if (!reservationId) {
+            return res.status(400).json({ message: "예약 ID가 필요합니다." });
+        }
+
+        const totalFare = Number(req.body?.total_fare);
+        if (!Number.isFinite(totalFare) || totalFare <= 0) {
+            return res.status(400).json({ message: "총 결제금액이 필요합니다." });
+        }
+
+        const requested = await settleService.requestSettlement(
+            reservationId,
+            req.user.id,
+            totalFare,
+        );
+        if (!requested) {
+            return res.status(404).json({ message: "예약 정보를 찾을 수 없습니다." });
+        }
+        return res.status(200).json(requested);
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            message: error.message || "정산 요청 중 오류가 발생했습니다.",
+        });
+    }
+}
+
+async function transferSettlement(req, res) {
+    try {
+        const reservationId = parseReservationId(req);
+        if (!reservationId) {
+            return res.status(400).json({ message: "예약 ID가 필요합니다." });
+        }
+
+        const transferred = await settleService.transferSettlement(
+            reservationId,
+            req.user.id,
+        );
+        if (!transferred) {
+            return res.status(404).json({ message: "예약 정보를 찾을 수 없습니다." });
+        }
+        return res.status(200).json(transferred);
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            message: error.message || "송금 중 오류가 발생했습니다.",
+        });
+    }
+}
+
+module.exports = {
+    getSettlementStatus,
+    getSettlementNotification,
+    requestSettlement,
+    transferSettlement,
+};

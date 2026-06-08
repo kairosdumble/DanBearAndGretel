@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -24,19 +25,45 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Place? _departure;
   Place? _destination;
   bool _openingMatchHistory = false;
+  bool _hasSettlementNotification = false;
+  int? _settlementNotificationReservationId;
+  Timer? _notificationTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadSettlementNotification();
+    _notificationTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _loadSettlementNotification(),
+    );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notificationTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadSettlementNotification();
+    }
+  }
 
   Future<void> _openSearch(PlaceSearchType type) async {
     final place = await Navigator.of(context).push<Place>(
       MaterialPageRoute(builder: (_) => PlaceSearchPage(type: type)),
     );
 
-    if (!mounted || place == null) {
-      return;
-    }
+    if (!mounted || place == null) return;
 
     setState(() {
       if (type == PlaceSearchType.departure) {
@@ -50,9 +77,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _onFindMatePressed() async {
     final departure = _departure;
     final destination = _destination;
-    if (departure == null || destination == null) {
-      return;
-    }
+    if (departure == null || destination == null) return;
 
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
@@ -60,6 +85,7 @@ class _HomePageState extends State<HomePage> {
             NearbyMateList(departure: departure, destination: destination),
       ),
     );
+    await _loadSettlementNotification();
   }
 
   Future<void> _openMatchingHistory() async {
@@ -67,12 +93,20 @@ class _HomePageState extends State<HomePage> {
     setState(() => _openingMatchHistory = true);
 
     try {
-      final activeMatch = await _fetchActiveMatchedReservation();
+      final reservationIdFromNotification =
+          _settlementNotificationReservationId;
+      final activeMatch = reservationIdFromNotification == null
+          ? await _fetchActiveMatchedReservation()
+          : <String, dynamic>{
+              'id': reservationIdFromNotification,
+              'is_creator': false,
+            };
       final reservationId = _asInt(activeMatch['id']);
       if (reservationId <= 0) {
         throw Exception('예약 ID가 없습니다.');
       }
-      await _syncMyDestinationIfNeeded(reservationId, activeMatch);
+
+      await _syncMyDestinationIfNeeded(reservationId);
 
       final settlement = await SettlementApi.fetchSettlement(reservationId);
       final result = calculateSettlement(
@@ -99,6 +133,7 @@ class _HomePageState extends State<HomePage> {
               : IntermediateDropoffScreen(matchData: matchData),
         ),
       );
+      await _loadSettlementNotification();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -110,6 +145,25 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         setState(() => _openingMatchHistory = false);
       }
+    }
+  }
+
+  Future<void> _loadSettlementNotification() async {
+    try {
+      final notification = await SettlementApi.fetchSettlementNotification();
+      if (!mounted) return;
+      setState(() {
+        _hasSettlementNotification = notification['notification'] == true;
+        _settlementNotificationReservationId = _hasSettlementNotification
+            ? _asInt(notification['reservation_id'])
+            : null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _hasSettlementNotification = false;
+        _settlementNotificationReservationId = null;
+      });
     }
   }
 
@@ -139,19 +193,14 @@ class _HomePageState extends State<HomePage> {
     return Map<String, dynamic>.from(decoded);
   }
 
-  Future<void> _syncMyDestinationIfNeeded(
-    int reservationId,
-    Map<String, dynamic> activeMatch,
-  ) async {
+  Future<void> _syncMyDestinationIfNeeded(int reservationId) async {
     final destination = _destination;
-    if (destination == null || activeMatch['is_creator'] == true) {
+    if (destination == null) {
       return;
     }
 
     final token = await AuthTokenStorage.getToken();
-    if (token == null || token.isEmpty) {
-      return;
-    }
+    if (token == null || token.isEmpty) return;
 
     final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
     final response = await http.post(
@@ -258,12 +307,30 @@ class _HomePageState extends State<HomePage> {
                               borderRadius: BorderRadius.circular(5),
                             ),
                           ),
-                          child: Text(
-                            _openingMatchHistory ? '조회 중' : '매칭내역',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Text(
+                                _openingMatchHistory ? '조회 중' : '매칭내역',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (_hasSettlementNotification)
+                                Positioned(
+                                  top: -5,
+                                  right: -8,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ),

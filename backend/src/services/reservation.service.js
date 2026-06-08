@@ -88,7 +88,8 @@ async function ensureSettlementColumns() {
         ADD COLUMN IF NOT EXISTS fare BIGINT NULL,
         ADD COLUMN IF NOT EXISTS destination_location TEXT NULL,
         ADD COLUMN IF NOT EXISTS destination_lat DOUBLE PRECISION NULL,
-        ADD COLUMN IF NOT EXISTS destination_lng DOUBLE PRECISION NULL;
+        ADD COLUMN IF NOT EXISTS destination_lng DOUBLE PRECISION NULL,
+        ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ NULL;
     `);
     await pool.query(`
         CREATE UNIQUE INDEX IF NOT EXISTS idx_reservation_bluetooth_participants_unique
@@ -281,16 +282,24 @@ const reservationService = {
             SELECT
                 r.*,
                 to_char(r.departure_time, 'YYYY-MM-DD"T"HH24:MI:SS') AS departure_time,
-                (r.user_id = $1) AS is_creator
+                (r.user_id = $1) AS is_creator,
+                rbp_me.destination_location AS my_destination_location,
+                rbp_me.destination_lat AS my_destination_lat,
+                rbp_me.destination_lng AS my_destination_lng,
+                rbp_me.confirmed_at AS my_confirmed_at,
+                match_meta.latest_confirmed_at
             FROM reservations r
+            LEFT JOIN reservation_bluetooth_participants rbp_me
+              ON rbp_me.reservation_id = r.id
+             AND rbp_me.user_id = $1
+            LEFT JOIN LATERAL (
+                SELECT MAX(rbp_any.confirmed_at) AS latest_confirmed_at
+                FROM reservation_bluetooth_participants rbp_any
+                WHERE rbp_any.reservation_id = r.id
+            ) match_meta ON TRUE
             WHERE (
                 r.user_id = $1
-                OR EXISTS (
-                    SELECT 1
-                    FROM reservation_bluetooth_participants rbp
-                    WHERE rbp.reservation_id = r.id
-                      AND rbp.user_id = $1
-                )
+                OR rbp_me.user_id IS NOT NULL
             )
               AND COALESCE(r.status, 'READY') IN ('RUNNING', 'READY')
               AND (
@@ -303,8 +312,12 @@ const reservationService = {
               )
             ORDER BY
                 CASE WHEN COALESCE(r.status, 'READY') = 'RUNNING' THEN 0 ELSE 1 END,
-                r.departure_time DESC NULLS LAST,
-                r.id DESC
+                COALESCE(
+                    rbp_me.confirmed_at,
+                    match_meta.latest_confirmed_at
+                ) DESC NULLS LAST,
+                r.id DESC,
+                r.departure_time DESC NULLS LAST
             LIMIT 1
         `;
         const { rows } = await pool.query(query, [userId]);
