@@ -1,11 +1,19 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/core/widgets/search_box_button.dart';
 
 import '../../nearby_mate_list/screens/nearby_mate_list.dart';
 import '../../route_search/screens/place_search.dart';
 import '../../setting/screens/setting_screen.dart';
+import '../../settle_up/models/settlement_calculator.dart';
 import '../../settle_up/screens/final_dropoff.dart';
+import '../../settle_up/screens/intermediate_dropoff.dart';
+import '../../settle_up/services/settlement_api.dart';
 import 'place.dart';
 import 'tmap_view.dart';
 
@@ -19,6 +27,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Place? _departure;
   Place? _destination;
+  bool _openingMatchHistory = false;
 
   Future<void> _openSearch(PlaceSearchType type) async {
     final place = await Navigator.of(context).push<Place>(
@@ -53,14 +62,124 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _openMatchingHistory() async {
+    if (_openingMatchHistory) return;
+    setState(() => _openingMatchHistory = true);
+
+    try {
+      final activeMatch = await _fetchActiveMatchedReservation();
+      final reservationId = _asInt(activeMatch['id']);
+      if (reservationId <= 0) {
+        throw Exception('예약 ID가 없습니다.');
+      }
+      await _syncMyDestinationIfNeeded(reservationId, activeMatch);
+
+      final settlement = await SettlementApi.fetchSettlement(reservationId);
+      final result = calculateSettlement(
+        passengers: settlement.passengers,
+        totalFare: 1,
+        creatorId: settlement.reservation.creatorId,
+      );
+      final isFinalDropoff =
+          result.finalSettler?.id == settlement.currentUserId;
+
+      final matchData = <String, dynamic>{
+        'id': reservationId,
+        'reservation_id': reservationId,
+        'departure': settlement.reservation.departureLocation,
+        'destination': settlement.reservation.destinationLocation,
+        'fare': _asInt(activeMatch['fare']),
+      };
+
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => isFinalDropoff
+              ? FinalDropoffScreen(matchData: matchData)
+              : IntermediateDropoffScreen(matchData: matchData),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _openingMatchHistory = false);
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchActiveMatchedReservation() async {
+    final token = await AuthTokenStorage.getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('로그인이 필요합니다.');
+    }
+
+    final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/reservations/active-match'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 404) {
+      throw Exception('진행 중인 예약이 없습니다.');
+    }
+    if (response.statusCode != 200) {
+      throw Exception('매칭내역을 불러오지 못했습니다. (${response.statusCode})');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw Exception('매칭내역 형식이 올바르지 않습니다.');
+    }
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  Future<void> _syncMyDestinationIfNeeded(
+    int reservationId,
+    Map<String, dynamic> activeMatch,
+  ) async {
+    final destination = _destination;
+    if (destination == null || activeMatch['is_creator'] == true) {
+      return;
+    }
+
+    final token = await AuthTokenStorage.getToken();
+    if (token == null || token.isEmpty) {
+      return;
+    }
+
+    final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/reservations/proximity/$reservationId/confirm'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'destination_location': destination.name,
+        'destination_lat': destination.latitude,
+        'destination_lng': destination.longitude,
+      }),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('입력한 목적지를 매칭 정보에 반영하지 못했습니다. (${response.statusCode})');
+    }
+  }
+
+  int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final canFindMate = _departure != null && _destination != null;
-    final matchData = {
-      'departure': _departure?.name ?? '출발지 정보 없음',
-      'destination': _destination?.name ?? '목적지 정보 없음',
-      'fare': 100000000,
-    };
 
     return Scaffold(
       body: Stack(
@@ -127,17 +246,9 @@ class _HomePageState extends State<HomePage> {
                       SizedBox(
                         height: 32,
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => FinalDropoffScreen(
-                                  key: null,
-                                  matchData: matchData,
-                                ),
-                              ),
-                            );
-                          },
+                          onPressed: _openingMatchHistory
+                              ? null
+                              : _openMatchingHistory,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE0E0E0),
                             foregroundColor: Colors.black,
@@ -147,9 +258,9 @@ class _HomePageState extends State<HomePage> {
                               borderRadius: BorderRadius.circular(5),
                             ),
                           ),
-                          child: const Text(
-                            '매칭내역',
-                            style: TextStyle(
+                          child: Text(
+                            _openingMatchHistory ? '조회 중' : '매칭내역',
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                             ),

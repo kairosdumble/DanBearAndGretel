@@ -82,6 +82,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
       });
     }
   }
+
   Uri _reservationsUri(String baseUrl) {
     final departure = widget.departure;
     final destination = widget.destination;
@@ -159,9 +160,9 @@ class _NearbyMateListState extends State<NearbyMateList> {
   }
 
   void _openCreateReservation() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NearbyMateDetail()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const NearbyMateDetail()));
   }
 
   Widget _buildCreateReservationButton() {
@@ -241,7 +242,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
                     ],
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(left: 48,),
+                    padding: const EdgeInsets.only(left: 48),
                     child: Text(
                       '총 ${_reservations.length.toString()}개의 모집글',
                       style: const TextStyle(
@@ -252,7 +253,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                      if (_loading)
+                  if (_loading)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 48),
                       child: Center(child: CircularProgressIndicator()),
@@ -272,36 +273,45 @@ class _NearbyMateListState extends State<NearbyMateList> {
                     )
                   else
                     ..._reservations.map((row) {
-                  final reservationId = int.tryParse(
-                    row['id']?.toString() ?? '',
-                  );
-                  final dep = row['departure_location']?.toString() ?? '';
-                  final dest = row['destination_location']?.toString() ?? '';
-                  final departure = _parseDepartureTime(row['departure_time']);
-                  final chatTitle = dep.isEmpty && dest.isEmpty
-                      ? 'Reservation #${reservationId ?? '-'}'
-                      : '$dep -> $dest';
+                      final reservationId = int.tryParse(
+                        row['id']?.toString() ?? '',
+                      );
+                      final dep = row['departure_location']?.toString() ?? '';
+                      final dest =
+                          row['destination_location']?.toString() ?? '';
+                      final departure = _parseDepartureTime(
+                        row['departure_time'],
+                      );
+                      final chatTitle = dep.isEmpty && dest.isEmpty
+                          ? 'Reservation #${reservationId ?? '-'}'
+                          : '$dep -> $dest';
 
-                  return _buildReservationCard(
-                    departure: departure,
-                    departureLabel: dep.isEmpty ? '출발지 미정' : dep,
-                    destinationLabel: dest.isEmpty ? '도착지 미정' : dest,
-                    status: row['status'],
-                    participantCount: _participantCount(row),
-                    onTap: reservationId == null
-                        ? null
-                        : () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => MateChatScreen(
-                                  reservationId: reservationId,
-                                  title: chatTitle,
-                                ),
-                              ),
-                            );
-                          },
-                  );
-                }),
+                      return _buildReservationCard(
+                        departure: departure,
+                        departureLabel: dep.isEmpty ? '출발지 미정' : dep,
+                        destinationLabel: dest.isEmpty ? '도착지 미정' : dest,
+                        status: row['status'],
+                        participantCount: _participantCount(row),
+                        onTap: reservationId == null
+                            ? null
+                            : () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => MateChatScreen(
+                                      reservationId: reservationId,
+                                      title: chatTitle,
+                                      participantDestinationLocation:
+                                          widget.destination?.name,
+                                      participantDestinationLat:
+                                          widget.destination?.latitude,
+                                      participantDestinationLng:
+                                          widget.destination?.longitude,
+                                    ),
+                                  ),
+                                );
+                              },
+                      );
+                    }),
                 ],
               ),
             ),
@@ -360,45 +370,45 @@ class _NearbyMateListState extends State<NearbyMateList> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                              if (dayBadge != null) ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AuthColors.blueSecondary,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    dayBadge,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: AuthColors.bluePrimary,
+                                if (dayBadge != null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
                                     ),
+                                    decoration: BoxDecoration(
+                                      color: AuthColors.blueSecondary,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      dayBadge,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: AuthColors.bluePrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                ],
+                                Text(
+                                  _formatCardTime(departure),
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF111111),
+                                    height: 1.1,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
-                              ],
-                              Text(
-                                _formatCardTime(departure),
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF111111),
-                                  height: 1.1,
+                                Text(
+                                  _formatCardDate(departure),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: AuthColors.grayText,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _formatCardDate(departure),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: AuthColors.grayText,
-                                ),
-                              ),
                               ],
                             ),
                           ),
@@ -419,7 +429,11 @@ class _NearbyMateListState extends State<NearbyMateList> {
                                 label: departureLabel,
                               ),
                               const Padding(
-                                padding: EdgeInsets.only(left: 7, top: 2, bottom: 2),
+                                padding: EdgeInsets.only(
+                                  left: 7,
+                                  top: 2,
+                                  bottom: 2,
+                                ),
                                 child: Icon(
                                   Icons.keyboard_arrow_down_rounded,
                                   size: 16,
@@ -498,10 +512,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
         Container(
           width: 18,
           height: 18,
-          decoration: BoxDecoration(
-            color: iconColor,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: iconColor, shape: BoxShape.circle),
           child: Icon(icon, size: 11, color: Colors.white),
         ),
         const SizedBox(width: 6),

@@ -88,6 +88,46 @@ async function getReservationById(req, res) {
     }
 }
 
+async function getSettlementDetails(req, res) {
+    try {
+        const reservationId = Number(req.params.id);
+        if (!Number.isInteger(reservationId) || reservationId <= 0) {
+            return res.status(400).json({ message: "예약 ID가 필요합니다." });
+        }
+
+        const details = await reservationService.getSettlementDetails(
+            reservationId,
+            req.user.id,
+        );
+        if (!details) {
+            return res.status(404).json({ message: "해당 예약을 찾을 수 없습니다." });
+        }
+        res.status(200).json(details);
+    } catch (error) {
+        res.status(500).json({
+            message: "정산 정보 조회 중 오류가 발생했습니다.",
+            error: error.message,
+        });
+    }
+}
+
+async function getActiveMatchedReservation(req, res) {
+    try {
+        const reservation = await reservationService.getActiveMatchedReservation(
+            req.user.id,
+        );
+        if (!reservation) {
+            return res.status(404).json({ message: "진행 중인 예약이 없습니다." });
+        }
+        res.status(200).json(reservation);
+    } catch (error) {
+        res.status(500).json({
+            message: "진행 중인 예약 조회 중 오류가 발생했습니다.",
+            error: error.message,
+        });
+    }
+}
+
 async function getAllReservations(req, res) {
     try {
         const lat = parseCoordinate(req.query.lat);
@@ -148,9 +188,15 @@ async function confirmProximityMatch(req, res) {
             return res.status(400).json({ message: "예약 ID가 필요합니다." });
         }
         const userId = req.user.id;
+        const body = req.body || {};
         const confirmed = await proximityMatchService.confirm(
             Number(reservationId),
             userId,
+            {
+                destination_location: String(body.destination_location || "").trim(),
+                destination_lat: parseCoordinate(body.destination_lat),
+                destination_lng: parseCoordinate(body.destination_lng),
+            },
         );
         if (!confirmed) {
             return res.status(404).json({ message: "해당 예약을 찾을 수 없습니다." });
@@ -211,6 +257,8 @@ module.exports = {
     createReservation,
     getReservation,
     getReservationById,
+    getSettlementDetails,
+    getActiveMatchedReservation,
     getAllReservations,
     putReservation,
     confirmProximityMatch,

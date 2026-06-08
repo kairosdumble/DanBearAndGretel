@@ -81,9 +81,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final configured = dotenv.env['BASE_URL']?.trim();
     return [
       if (configured != null && configured.isNotEmpty) configured,
-      'http://10.184.252.76:3000',
+      'http://192.168.0.12:3000',
       'http://10.0.2.2:3000',
-      'http://localhost:3000',
     ].map((url) => url.replaceFirst(RegExp(r'/$'), '')).toSet().toList();
   }
 

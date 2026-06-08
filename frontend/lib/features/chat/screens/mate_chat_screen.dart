@@ -11,14 +11,26 @@ import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/features/bluetooth/screens/bluetooth_connect.dart';
 import 'package:frontend/features/bluetooth/services/proximity_match_api.dart';
 import 'package:frontend/features/nearby_mate_list/screens/nearby_mate_list.dart';
+import 'package:frontend/features/settle_up/screens/final_dropoff.dart';
+import 'package:frontend/features/settle_up/screens/intermediate_dropoff.dart';
 
 //[TODO] 나중에 isMatching/Matched 상태 성리 필요
 
 class MateChatScreen extends StatefulWidget {
   final int reservationId;
   final String? title;
+  final String? participantDestinationLocation;
+  final double? participantDestinationLat;
+  final double? participantDestinationLng;
 
-  const MateChatScreen({super.key, required this.reservationId, this.title});
+  const MateChatScreen({
+    super.key,
+    required this.reservationId,
+    this.title,
+    this.participantDestinationLocation,
+    this.participantDestinationLat,
+    this.participantDestinationLng,
+  });
 
   @override
   State<MateChatScreen> createState() => _MateChatScreenState();
@@ -49,8 +61,9 @@ class _MateChatScreenState extends State<MateChatScreen> {
   StreamSubscription<String>? _streamSubscription;
   String? _streamEventName;
   bool _disposed = false;
-  bool? _isMatching; /// null: DB 조회 중, true/false: reservation_bluetooth_participants 존재 여부
-  
+  bool? _isMatching;
+
+  /// null: DB 조회 중, true/false: reservation_bluetooth_participants 존재 여부
 
   @override
   void initState() {
@@ -158,6 +171,9 @@ class _MateChatScreenState extends State<MateChatScreen> {
       MaterialPageRoute(
         builder: (_) => BluetoothMatchingScreen(
           reservationId: widget.reservationId,
+          destinationLocation: widget.participantDestinationLocation,
+          destinationLat: widget.participantDestinationLat,
+          destinationLng: widget.participantDestinationLng,
         ),
       ),
     );
@@ -200,8 +216,7 @@ class _MateChatScreenState extends State<MateChatScreen> {
                         style: TextButton.styleFrom(
                           foregroundColor: Color(0xFF2C55A1),
                         ),
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(true),
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
                         child: const Text(
                           '예',
                           style: TextStyle(
@@ -215,8 +230,7 @@ class _MateChatScreenState extends State<MateChatScreen> {
                         style: TextButton.styleFrom(
                           foregroundColor: Color(0xFF2C55A1),
                         ),
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(false),
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
                         child: const Text(
                           '아니요',
                           style: TextStyle(
@@ -251,6 +265,47 @@ class _MateChatScreenState extends State<MateChatScreen> {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const NearbyMateList()),
       (route) => route.isFirst,
+    );
+  }
+
+  Future<void> _openSettlement() async {
+    final matchData = {
+      'id': widget.reservationId,
+      'reservation_id': widget.reservationId,
+      'departure': _reservation?['departure_location']?.toString() ?? '미정',
+      'destination': _reservation?['destination_location']?.toString() ?? '미정',
+      'fare': 18000,
+    };
+
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.flag_outlined),
+              title: const Text('최종 하차 정산'),
+              onTap: () => Navigator.pop(context, 'final'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.payments_outlined),
+              title: const Text('중도 하차 정산'),
+              onTap: () => Navigator.pop(context, 'intermediate'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted || selected == null) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => selected == 'final'
+            ? FinalDropoffScreen(matchData: matchData)
+            : IntermediateDropoffScreen(matchData: matchData),
+      ),
     );
   }
 
@@ -528,7 +583,8 @@ class _MateChatScreenState extends State<MateChatScreen> {
             ),
             _ReservationInfoCard(
               loading: _loadingReservation,
-              departure: _reservation?['departure_location']?.toString() ?? '미정',
+              departure:
+                  _reservation?['departure_location']?.toString() ?? '미정',
               destination:
                   _reservation?['destination_location']?.toString() ?? '미정',
               dateLabel: _formatReservationDate(_departureDateTime),
@@ -537,6 +593,7 @@ class _MateChatScreenState extends State<MateChatScreen> {
               isMatching: _isMatching,
               onMatch: _openBluetoothMatching,
               onCancelMatch: _onCancelMatching,
+              onSettlement: _openSettlement,
             ),
             Expanded(
               child: _ChatMessageList(
@@ -704,9 +761,7 @@ class _ChatHeader extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFE8E8E8)),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFE8E8E8))),
       ),
       padding: const EdgeInsets.fromLTRB(8, 8, 12, 10),
       child: Row(
@@ -770,6 +825,7 @@ class _ReservationInfoCard extends StatelessWidget {
   final bool? isMatching;
   final VoidCallback onMatch;
   final VoidCallback onCancelMatch;
+  final VoidCallback onSettlement;
 
   const _ReservationInfoCard({
     required this.loading,
@@ -781,6 +837,7 @@ class _ReservationInfoCard extends StatelessWidget {
     required this.isMatching,
     required this.onMatch,
     required this.onCancelMatch,
+    required this.onSettlement,
   });
 
   @override
@@ -871,6 +928,28 @@ class _ReservationInfoCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: OutlinedButton(
+                      onPressed: onSettlement,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AuthColors.bluePrimary,
+                        side: const BorderSide(color: AuthColors.bluePrimary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        '하차 정산',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -882,10 +961,7 @@ class _RouteTimeline extends StatelessWidget {
   final String departure;
   final String destination;
 
-  const _RouteTimeline({
-    required this.departure,
-    required this.destination,
-  });
+  const _RouteTimeline({required this.departure, required this.destination});
 
   @override
   Widget build(BuildContext context) {
@@ -1114,8 +1190,9 @@ class _ChatMessage extends StatelessWidget {
     );
 
     return Row(
-      mainAxisAlignment:
-          isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: isMine
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         if (!isMine) ...[
