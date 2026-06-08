@@ -113,7 +113,7 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('송금이 완료되었습니다.')));
-      await _loadSettlement();
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

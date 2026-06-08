@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -33,6 +34,8 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
   bool _isLoadingSettlement = true;
   bool _isUploadingImage = false;
   bool _isRequestingSettlement = false;
+  bool _hasLeftAfterCompletion = false;
+  Timer? _settlementStatusTimer;
   String? _error;
 
   @override
@@ -44,12 +47,14 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
     }
     _fareInputController.addListener(_recalculate);
     _loadSettlement();
+    _startSettlementStatusPolling();
   }
 
   @override
   void dispose() {
     _fareInputController.removeListener(_recalculate);
     _fareInputController.dispose();
+    _settlementStatusTimer?.cancel();
     super.dispose();
   }
 
@@ -106,6 +111,39 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
 
   void _recalculate() {
     if (mounted) setState(() {});
+  }
+
+  void _startSettlementStatusPolling() {
+    _settlementStatusTimer?.cancel();
+    _settlementStatusTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _checkSettlementCompletion(),
+    );
+  }
+
+  Future<void> _checkSettlementCompletion() async {
+    final reservationId = _reservationId;
+    if (reservationId <= 0 || _hasLeftAfterCompletion) return;
+
+    try {
+      final status = await SettlementApi.fetchSettlementStatus(reservationId);
+      if (!mounted || _hasLeftAfterCompletion) return;
+
+      final finalSettlerId = status['final_settler_id']?.toString();
+      final currentUserId = _settlementData?.currentUserId;
+      final isFinalSettler =
+          currentUserId != null && finalSettlerId == currentUserId;
+      if (isFinalSettler && status['completed'] == true) {
+        _hasLeftAfterCompletion = true;
+        _settlementStatusTimer?.cancel();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('모든 송금이 완료되어 매칭을 종료했습니다.')),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (_) {
+      // Polling failures are ignored so the settlement screen can keep working.
+    }
   }
 
   Future<void> _pickAndUploadTaximeterImage(ImageSource source) async {
@@ -220,6 +258,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('정산 알림을 보냈습니다.')));
+      await _checkSettlementCompletion();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

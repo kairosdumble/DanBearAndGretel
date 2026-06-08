@@ -129,6 +129,9 @@ async function getStatus(reservationId, userId) {
         [reservationId, userId],
     );
     const paid = paidResult.rows[0]?.settlement_paid === true;
+    const pendingPaymentCount = finalSettler == null
+        ? 0
+        : await getPendingPaymentCount(reservationId, finalSettler.id);
 
     return {
         requested: settlement != null,
@@ -139,8 +142,24 @@ async function getStatus(reservationId, userId) {
         final_settler_name: finalSettler?.name || finalSettler?.email || null,
         my_fare: Math.round(fareByPassenger[currentUserId] || 0),
         paid,
+        pending_payment_count: pendingPaymentCount,
+        completed: settlement != null && pendingPaymentCount === 0,
         notification: settlement != null && !isFinalSettler && !paid,
     };
+}
+
+async function getPendingPaymentCount(reservationId, finalSettlerId) {
+    const result = await pool.query(
+        `
+        SELECT COUNT(*)::integer AS count
+        FROM reservation_bluetooth_participants
+        WHERE reservation_id = $1
+          AND user_id <> $2
+          AND settlement_paid = FALSE
+        `,
+        [reservationId, finalSettlerId],
+    );
+    return Number(result.rows[0]?.count || 0);
 }
 
 async function getNotification(userId) {
@@ -269,17 +288,37 @@ async function transferSettlement(reservationId, userId) {
             UPDATE reservation_bluetooth_participants
             SET settlement_paid = TRUE,
                 settlement_paid_at = NOW(),
+                dropoff_completed = TRUE,
                 fare = $3
             WHERE reservation_id = $1 AND user_id = $2
             `,
             [reservationId, userId, amount],
         );
 
+        const pendingResult = await client.query(
+            `
+            SELECT COUNT(*)::integer AS count
+            FROM reservation_bluetooth_participants
+            WHERE reservation_id = $1
+              AND user_id <> $2
+              AND settlement_paid = FALSE
+            `,
+            [reservationId, status.final_settler_id],
+        );
+        const pendingCount = Number(pendingResult.rows[0]?.count || 0);
+        if (pendingCount === 0) {
+            await client.query(
+                "UPDATE reservations SET status = 'COMPLETED' WHERE id = $1",
+                [reservationId],
+            );
+        }
+
         await client.query("COMMIT");
         return {
             amount,
             newBalance: balance - amount,
             finalSettlerId: status.final_settler_id,
+            completed: pendingCount === 0,
         };
     } catch (error) {
         await client.query("ROLLBACK");

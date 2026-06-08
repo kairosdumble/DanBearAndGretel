@@ -286,6 +286,7 @@ const reservationService = {
                 rbp_me.destination_location AS my_destination_location,
                 rbp_me.destination_lat AS my_destination_lat,
                 rbp_me.destination_lng AS my_destination_lng,
+                rbp_me.settlement_paid AS my_settlement_paid,
                 rbp_me.confirmed_at AS my_confirmed_at,
                 match_meta.latest_confirmed_at
             FROM reservations r
@@ -301,17 +302,19 @@ const reservationService = {
                 r.user_id = $1
                 OR rbp_me.user_id IS NOT NULL
             )
-              AND COALESCE(r.status, 'READY') IN ('RUNNING', 'READY')
+              AND COALESCE(r.status, 'READY') = 'RUNNING'
               AND (
-                COALESCE(r.status, 'READY') = 'RUNNING'
-                OR EXISTS (
-                    SELECT 1
-                    FROM reservation_bluetooth_participants rbp_any
-                    WHERE rbp_any.reservation_id = r.id
+                (
+                    r.user_id = $1
+                    AND match_meta.latest_confirmed_at IS NOT NULL
+                )
+                OR (
+                    rbp_me.user_id IS NOT NULL
+                    AND rbp_me.confirmed_at IS NOT NULL
+                    AND COALESCE(rbp_me.settlement_paid, FALSE) = FALSE
                 )
               )
             ORDER BY
-                CASE WHEN COALESCE(r.status, 'READY') = 'RUNNING' THEN 0 ELSE 1 END,
                 COALESCE(
                     rbp_me.confirmed_at,
                     match_meta.latest_confirmed_at
