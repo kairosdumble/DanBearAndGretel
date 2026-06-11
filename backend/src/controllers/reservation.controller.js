@@ -139,6 +139,7 @@ async function getAllReservations(req, res) {
             lng,
             destinationLat,
             destinationLng,
+            userId: req.user.id,
         });
         res.status(200).json(reservations);
     } catch (error) {
