@@ -78,7 +78,7 @@ async function finalizeRequest(client, requestId, reservationId) {
         `
         UPDATE reservations
         SET status = 'RUNNING'
-        WHERE id = $1 AND status = 'READY';
+        WHERE id = $1 AND status IN ('READY', 'MATCHED');
         `,
         [reservationId],
     );
@@ -342,10 +342,22 @@ async function confirm(reservationId, userId) {
 
         const inserted = await client.query(
             `
-            INSERT INTO reservation_bluetooth_participants (reservation_id, user_id)
-            SELECT $1, $2
+            INSERT INTO reservation_bluetooth_participants (
+                reservation_id,
+                user_id,
+                destination_location,
+                destination_lat,
+                destination_lng,
+                confirmed_at
+            )
+            SELECT $1, $2, $3, $4, $5, NOW()
             WHERE EXISTS (SELECT 1 FROM reservations WHERE id = $1)
-            ON CONFLICT (reservation_id, user_id) DO NOTHING
+            ON CONFLICT (reservation_id, user_id) DO UPDATE
+            SET
+                destination_location = COALESCE(EXCLUDED.destination_location, reservation_bluetooth_participants.destination_location),
+                destination_lat = COALESCE(EXCLUDED.destination_lat, reservation_bluetooth_participants.destination_lat),
+                destination_lng = COALESCE(EXCLUDED.destination_lng, reservation_bluetooth_participants.destination_lng),
+                confirmed_at = NOW()
             RETURNING *;
             `,
             values,
@@ -360,7 +372,7 @@ async function confirm(reservationId, userId) {
                     FROM reservation_bluetooth_participants
                     WHERE reservation_id = $1 AND user_id = $2;
                     `,
-                    values,
+                    [reservationId, userId],
                 )
             ).rows[0];
 
@@ -420,7 +432,8 @@ async function cancel(reservationId, userId) {
 
 async function get(reservationId, userId) {
     const query = `
-        SELECT * FROM reservation_bluetooth_participants
+        SELECT *
+        FROM reservation_bluetooth_participants
         WHERE reservation_id = $1 AND user_id = $2;
     `;
     const values = [reservationId, userId];

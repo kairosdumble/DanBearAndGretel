@@ -32,6 +32,71 @@ const participantCountSelect = `
         0
     ) AS participant_count`;
 
+function haversineMeters(fromLat, fromLng, toLat, toLng) {
+    const values = [fromLat, fromLng, toLat, toLng].map(Number);
+    if (!values.every(Number.isFinite)) {
+        return 0;
+    }
+    const [lat1, lng1, lat2, lng2] = values.map((value) => value * Math.PI / 180);
+    const dLat = lat2 - lat1;
+    const dLng = lng2 - lng1;
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return Math.round(6371000 * 2 * Math.asin(Math.min(1, Math.sqrt(a))));
+}
+
+function normalizeKoreanCoordinate(lat, lng) {
+    const parsedLat = Number(lat);
+    const parsedLng = Number(lng);
+    if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) {
+        return { lat: null, lng: null };
+    }
+
+    const looksValid = parsedLat >= 30 && parsedLat <= 45 && parsedLng >= 120 && parsedLng <= 140;
+    if (looksValid) {
+        return { lat: parsedLat, lng: parsedLng };
+    }
+
+    const looksSwapped = parsedLng >= 30 && parsedLng <= 45 && parsedLat >= 120 && parsedLat <= 140;
+    if (looksSwapped) {
+        return { lat: parsedLng, lng: parsedLat };
+    }
+
+    return { lat: parsedLat, lng: parsedLng };
+}
+
+function isPlausibleDropoffDistance(distanceMeters, routeDistanceMeters) {
+    if (!Number.isFinite(distanceMeters) || distanceMeters <= 0) {
+        return false;
+    }
+    if (!Number.isFinite(routeDistanceMeters) || routeDistanceMeters <= 0) {
+        return distanceMeters < 100000;
+    }
+    return distanceMeters <= Math.max(routeDistanceMeters + 1000, routeDistanceMeters * 1.5);
+}
+
+async function ensureSettlementColumns() {
+    await pool.query(`
+        ALTER TABLE reservations
+        ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'READY';
+    `);
+    await pool.query(`
+        ALTER TABLE reservation_bluetooth_participants
+        ADD COLUMN IF NOT EXISTS dropoff_completed BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS distance BIGINT NULL,
+        ADD COLUMN IF NOT EXISTS fare BIGINT NULL,
+        ADD COLUMN IF NOT EXISTS destination_location TEXT NULL,
+        ADD COLUMN IF NOT EXISTS destination_lat DOUBLE PRECISION NULL,
+        ADD COLUMN IF NOT EXISTS destination_lng DOUBLE PRECISION NULL,
+        ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ NULL;
+    `);
+    await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_reservation_bluetooth_participants_unique
+        ON reservation_bluetooth_participants (reservation_id, user_id);
+    `);
+}
+
 const reservationService = {
     createReservation: async (userId, reservationData) => {
         const {
@@ -208,6 +273,181 @@ const reservationService = {
         `;
         const { rows } = await pool.query(query, [reservationId]);
         return rows[0];
+    },
+
+    getActiveMatchedReservation: async (userId) => {
+        await ensureSettlementColumns();
+
+        const query = `
+            SELECT
+                r.*,
+                to_char(r.departure_time, 'YYYY-MM-DD"T"HH24:MI:SS') AS departure_time,
+                (r.user_id = $1) AS is_creator,
+                rbp_me.destination_location AS my_destination_location,
+                rbp_me.destination_lat AS my_destination_lat,
+                rbp_me.destination_lng AS my_destination_lng,
+                rbp_me.settlement_paid AS my_settlement_paid,
+                rbp_me.confirmed_at AS my_confirmed_at,
+                match_meta.latest_confirmed_at
+            FROM reservations r
+            LEFT JOIN reservation_bluetooth_participants rbp_me
+              ON rbp_me.reservation_id = r.id
+             AND rbp_me.user_id = $1
+            LEFT JOIN LATERAL (
+                SELECT MAX(rbp_any.confirmed_at) AS latest_confirmed_at
+                FROM reservation_bluetooth_participants rbp_any
+                WHERE rbp_any.reservation_id = r.id
+            ) match_meta ON TRUE
+            WHERE (
+                r.user_id = $1
+                OR rbp_me.user_id IS NOT NULL
+            )
+              AND COALESCE(r.status, 'READY') = 'RUNNING'
+              AND (
+                (
+                    r.user_id = $1
+                    AND match_meta.latest_confirmed_at IS NOT NULL
+                )
+                OR (
+                    rbp_me.user_id IS NOT NULL
+                    AND rbp_me.confirmed_at IS NOT NULL
+                    AND COALESCE(rbp_me.settlement_paid, FALSE) = FALSE
+                )
+              )
+            ORDER BY
+                COALESCE(
+                    rbp_me.confirmed_at,
+                    match_meta.latest_confirmed_at
+                ) DESC NULLS LAST,
+                r.id DESC,
+                r.departure_time DESC NULLS LAST
+            LIMIT 1
+        `;
+        const { rows } = await pool.query(query, [userId]);
+        return rows[0] || null;
+    },
+
+    getSettlementDetails: async (reservationId, currentUserId) => {
+        await ensureSettlementColumns();
+
+        const reservationQuery = `
+            SELECT
+                r.*,
+                ${departureTimeSelect},
+                u.id AS creator_id,
+                u.name AS creator_name,
+                u.email AS creator_email
+            FROM reservations r
+            JOIN users u ON u.id = r.user_id
+            WHERE r.id = $1
+        `;
+        const reservationResult = await pool.query(reservationQuery, [reservationId]);
+        const reservation = reservationResult.rows[0];
+        if (!reservation) {
+            return null;
+        }
+
+        const reservationDeparture = normalizeKoreanCoordinate(
+            reservation.departure_lat,
+            reservation.departure_lng,
+        );
+        const reservationDestination = normalizeKoreanCoordinate(
+            reservation.destination_lat,
+            reservation.destination_lng,
+        );
+        const routeDistanceMeters = haversineMeters(
+            reservationDeparture.lat,
+            reservationDeparture.lng,
+            reservationDestination.lat,
+            reservationDestination.lng,
+        );
+
+        const participantQuery = `
+            SELECT
+                u.id,
+                u.name,
+                u.email,
+                rbp.distance,
+                rbp.fare,
+                rbp.dropoff_completed,
+                rbp.destination_location,
+                rbp.destination_lat,
+                rbp.destination_lng
+            FROM reservation_bluetooth_participants rbp
+            JOIN users u ON u.id = rbp.user_id
+            WHERE rbp.reservation_id = $1
+            ORDER BY u.id ASC
+        `;
+        const participantResult = await pool.query(participantQuery, [reservationId]);
+
+        const participantsById = new Map();
+        participantsById.set(String(reservation.creator_id), {
+            id: String(reservation.creator_id),
+            name: reservation.creator_name,
+            email: reservation.creator_email,
+            is_creator: true,
+            destination_location: reservation.destination_location,
+            dropoff_distance_meters: routeDistanceMeters,
+            fare: null,
+            dropoff_completed: false,
+        });
+
+        for (const row of participantResult.rows) {
+            const savedDistance =
+                row.distance == null ? null : Number(row.distance);
+            const participantDestination = normalizeKoreanCoordinate(
+                row.destination_lat,
+                row.destination_lng,
+            );
+            const destinationDistance = haversineMeters(
+                reservationDeparture.lat,
+                reservationDeparture.lng,
+                participantDestination.lat,
+                participantDestination.lng,
+            );
+            const computedDistance = isPlausibleDropoffDistance(
+                destinationDistance,
+                routeDistanceMeters,
+            )
+                ? destinationDistance
+                : null;
+            const savedPlausibleDistance = isPlausibleDropoffDistance(
+                savedDistance,
+                routeDistanceMeters,
+            )
+                ? savedDistance
+                : null;
+            const dropoffDistance = computedDistance ??
+                savedPlausibleDistance ??
+                routeDistanceMeters;
+            participantsById.set(String(row.id), {
+                id: String(row.id),
+                name: row.name,
+                email: row.email,
+                is_creator: String(row.id) === String(reservation.creator_id),
+                destination_location: row.destination_location || reservation.destination_location,
+                dropoff_distance_meters: dropoffDistance,
+                fare: row.fare == null ? null : Number(row.fare),
+                dropoff_completed: row.dropoff_completed === true,
+            });
+        }
+
+        return {
+            current_user_id: String(currentUserId),
+            reservation: {
+                id: reservation.id,
+                creator_id: String(reservation.creator_id),
+                departure_location: reservation.departure_location,
+                destination_location: reservation.destination_location,
+                departure_lat: reservation.departure_lat,
+                departure_lng: reservation.departure_lng,
+                destination_lat: reservation.destination_lat,
+                destination_lng: reservation.destination_lng,
+                departure_time: reservation.departure_time,
+                route_distance_meters: routeDistanceMeters,
+            },
+            participants: Array.from(participantsById.values()),
+        };
     },
 };
 

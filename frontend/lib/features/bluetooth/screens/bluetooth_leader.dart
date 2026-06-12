@@ -362,7 +362,6 @@ class _BluetoothLeaderScreenState extends State<BluetoothLeaderScreen>
                 ),
               ),
             ),
-            const SizedBox(height: 12),
             Expanded(
               child: _nearbyUsers.isEmpty
                   ? Center(
@@ -371,8 +370,7 @@ class _BluetoothLeaderScreenState extends State<BluetoothLeaderScreen>
                         child: Text(
                           _nearbyError ??
                               '주변 동승자가 아직 감지되지 않았습니다.\n'
-                              '팀원이 팀원용 매칭 화면에 들어와 있어야 목록에 표시됩니다.\n'
-                              '(서로 다른 계정·기기에서 테스트해 주세요)',
+                              '팀원이 팀원용 매칭 화면에 들어와 있어야 목록에 표시됩니다.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 13,

@@ -18,8 +18,18 @@ import 'package:frontend/features/nearby_mate_list/screens/nearby_mate_list.dart
 class MateChatScreen extends StatefulWidget {
   final int reservationId;
   final String? title;
+  final String? participantDestinationLocation;
+  final double? participantDestinationLat;
+  final double? participantDestinationLng;
 
-  const MateChatScreen({super.key, required this.reservationId, this.title});
+  const MateChatScreen({
+    super.key,
+    required this.reservationId,
+    this.title,
+    this.participantDestinationLocation,
+    this.participantDestinationLat,
+    this.participantDestinationLng,
+  });
 
   @override
   State<MateChatScreen> createState() => _MateChatScreenState();
@@ -50,8 +60,9 @@ class _MateChatScreenState extends State<MateChatScreen> {
   StreamSubscription<String>? _streamSubscription;
   String? _streamEventName;
   bool _disposed = false;
-  bool? _isMatching; /// null: DB 조회 중, true/false: reservation_bluetooth_participants 존재 여부
-  
+  bool? _isMatching;
+
+  /// null: DB 조회 중, true/false: reservation_bluetooth_participants 존재 여부
 
   @override
   void initState() {
@@ -155,6 +166,10 @@ class _MateChatScreenState extends State<MateChatScreen> {
   }
 
   Future<bool> _isReservationLeader() async {
+    if (_reservation == null || _reservation?['user_id'] == null) {
+      await _loadReservation();
+    }
+
     final token = await AuthTokenStorage.getToken();
     final currentUserId = token == null ? null : parseUserIdFromToken(token);
     final ownerId = int.tryParse(_reservation?['user_id']?.toString() ?? '');
@@ -170,7 +185,12 @@ class _MateChatScreenState extends State<MateChatScreen> {
       MaterialPageRoute(
         builder: (_) => isLeader
             ? BluetoothLeaderScreen(reservationId: widget.reservationId)
-            : BluetoothMatchingScreen(reservationId: widget.reservationId),
+            : BluetoothMatchingScreen(
+                reservationId: widget.reservationId,
+                destinationLocation: widget.participantDestinationLocation,
+                destinationLat: widget.participantDestinationLat,
+                destinationLng: widget.participantDestinationLng,
+              ),
       ),
     );
     if (matched == true && mounted) {
@@ -212,8 +232,7 @@ class _MateChatScreenState extends State<MateChatScreen> {
                         style: TextButton.styleFrom(
                           foregroundColor: Color(0xFF2C55A1),
                         ),
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(true),
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
                         child: const Text(
                           '예',
                           style: TextStyle(
@@ -227,8 +246,7 @@ class _MateChatScreenState extends State<MateChatScreen> {
                         style: TextButton.styleFrom(
                           foregroundColor: Color(0xFF2C55A1),
                         ),
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(false),
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
                         child: const Text(
                           '아니요',
                           style: TextStyle(
@@ -540,7 +558,8 @@ class _MateChatScreenState extends State<MateChatScreen> {
             ),
             _ReservationInfoCard(
               loading: _loadingReservation,
-              departure: _reservation?['departure_location']?.toString() ?? '미정',
+              departure:
+                  _reservation?['departure_location']?.toString() ?? '미정',
               destination:
                   _reservation?['destination_location']?.toString() ?? '미정',
               dateLabel: _formatReservationDate(_departureDateTime),
@@ -716,9 +735,7 @@ class _ChatHeader extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFE8E8E8)),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFE8E8E8))),
       ),
       padding: const EdgeInsets.fromLTRB(8, 8, 12, 10),
       child: Row(
@@ -756,14 +773,6 @@ class _ChatHeader extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.settings_outlined,
-              size: 22,
-              color: Color(0xFF222222),
             ),
           ),
         ],
@@ -894,10 +903,7 @@ class _RouteTimeline extends StatelessWidget {
   final String departure;
   final String destination;
 
-  const _RouteTimeline({
-    required this.departure,
-    required this.destination,
-  });
+  const _RouteTimeline({required this.departure, required this.destination});
 
   @override
   Widget build(BuildContext context) {
@@ -1126,8 +1132,9 @@ class _ChatMessage extends StatelessWidget {
     );
 
     return Row(
-      mainAxisAlignment:
-          isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: isMine
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         if (!isMine) ...[

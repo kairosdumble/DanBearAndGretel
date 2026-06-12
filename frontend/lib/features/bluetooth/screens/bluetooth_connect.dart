@@ -10,9 +10,16 @@ import 'package:frontend/features/bluetooth/services/proximity_match_api.dart';
 
 class BluetoothMatchingScreen extends StatefulWidget {
   final int reservationId;
+  final String? destinationLocation;
+  final double? destinationLat;
+  final double? destinationLng;
+
   const BluetoothMatchingScreen({
     super.key,
     required this.reservationId,
+    this.destinationLocation,
+    this.destinationLat,
+    this.destinationLng,
   });
 
   @override
@@ -127,9 +134,7 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
   Future<void> _startNearbyScan() async {
     await _stopNearbyScan();
     try {
-      await FlutterBluePlus.startScan(
-        timeout: const Duration(seconds: 30),
-      );
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 30));
       _scanSubscription = FlutterBluePlus.scanResults.listen((results) {
         if (!mounted) return;
         final bleUsers = <NearbyBleUser>[];
@@ -190,7 +195,12 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
 
     setState(() => _isSubmitting = true);
     try {
-      final result = await ProximityMatchApi.confirm(widget.reservationId);
+      final result = await ProximityMatchApi.confirm(
+        widget.reservationId,
+        destinationLocation: widget.destinationLocation,
+        destinationLat: widget.destinationLat,
+        destinationLng: widget.destinationLng,
+      );
       if (!mounted) return;
       if (result.success) {
         Navigator.of(context).pop(true);
@@ -202,9 +212,9 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
       await _refreshApprovalStatus();
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('서버 연결에 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('서버 연결에 실패했습니다.')));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -359,10 +369,7 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
                         color: Color(0xFFE8E8E8),
                       ),
                       Expanded(
-                        child: _StatCell(
-                          label: '지난 시간',
-                          value: _elapsedLabel,
-                        ),
+                        child: _StatCell(label: '지난 시간', value: _elapsedLabel),
                       ),
                     ],
                   ),
@@ -380,10 +387,12 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AuthColors.bluePrimary,
                     foregroundColor: AuthColors.whiteText,
-                    disabledBackgroundColor:
-                        AuthColors.bluePrimary.withValues(alpha: 0.45),
-                    disabledForegroundColor:
-                        AuthColors.whiteText.withValues(alpha: 0.8),
+                    disabledBackgroundColor: AuthColors.bluePrimary.withValues(
+                      alpha: 0.45,
+                    ),
+                    disabledForegroundColor: AuthColors.whiteText.withValues(
+                      alpha: 0.8,
+                    ),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -509,7 +518,8 @@ class RadarWavePainter extends CustomPainter {
     for (int i = 3; i >= 1; i--) {
       final currentProgress = (progress + (i * 0.33)) % 1.0;
       final radius =
-          centerIconRadius + (maxWaveRadius - centerIconRadius) * currentProgress;
+          centerIconRadius +
+          (maxWaveRadius - centerIconRadius) * currentProgress;
       final opacity = 1.0 - currentProgress;
 
       final ringPaint = Paint()

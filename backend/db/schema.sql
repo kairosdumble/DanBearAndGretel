@@ -66,10 +66,11 @@ CREATE TABLE IF NOT EXISTS reservations (
     destination_location TEXT NOT NULL, -- 도착장소
     departure_time TIMESTAMP NOT NULL, -- 출발시간
     -- 예약 상태
-    -- READY: 블루투스 전체 연결 전
+    -- READY: 모집 중 (블루투스 매칭 전)
+    -- MATCHED: 방장이 동승자 선택 후 승인 대기/매칭 확정한 단계
     -- RUNNING: 블루투스 전체 연결 후(택시 타는 동안)
     -- COMPLETED: 최종하차자 하차 후
-    status TEXT NOT NULL DEFAULT 'READY' CHECK (status IN ('READY', 'RUNNING', 'COMPLETED')),
+    status TEXT NOT NULL DEFAULT 'READY' CHECK (status IN ('MATCHED', 'READY', 'RUNNING', 'COMPLETED')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 생성시간
         ADD COLUMN IF NOT EXISTS departure_lat DOUBLE PRECISION,
     departure_lng DOUBLE PRECISION,

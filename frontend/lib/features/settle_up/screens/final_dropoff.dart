@@ -1,248 +1,211 @@
+import 'dart:async';
 import 'dart:io';
-import "dart:developer" as developer;
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
-import '../../../data/colors.dart';
 
-import '../../chat/screens/mate_chat_screen.dart';
-import 'package:frontend/core/auth/auth_token_storage.dart';
-import '../services/images/taximeter_upload_api.dart'; // 미터기 사진 업로드 API 서비스
-import '../services/images/taximeter_extract_api.dart'; // 미터기 금액 인식 API 서비스
+import 'package:frontend/data/colors.dart';
+import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
+
+import '../models/settlement_calculator.dart';
+import '../services/images/taximeter_extract_api.dart';
+import '../services/images/taximeter_upload_api.dart';
+import '../services/settlement_api.dart';
 
 class FinalDropoffScreen extends StatefulWidget {
-  final Map<String, dynamic> matchData;
+  const FinalDropoffScreen({super.key, required this.matchData});
 
-  const FinalDropoffScreen({Key? key, required this.matchData}) : super(key: key);
+  final Map<String, dynamic> matchData;
 
   @override
   State<FinalDropoffScreen> createState() => _FinalDropoffScreenState();
 }
 
 class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
-  // 정산 완료 여부를 나타내는 변수
-  bool _isSettled = false;
-  // 로그인 시 저장해둔 토큰 가져오기 위한 FlutterSecureStorage 인스턴스
-  final storage = AuthTokenStorage();
-  // 선택된 택시 미터기 사진 파일
-  File? _selectedImageFile;
-  // 택시 사진 업로드 후 반환된 이미지 URL을 저장하는 변수
-  String? _TaxiImageUrl;
-  // 사진 업로드 상태를 나타내는 변수
-  bool _isUploadingImage = false; 
-
-  final TextEditingController _fareInputController = TextEditingController();
-  final TaximeterUploadAPI _taxmeterUploadAPI = TaximeterUploadAPI();
+  final TextEditingController _fareInputController = TextEditingController(
+    text: '18000',
+  );
+  final TaximeterUploadAPI _taximeterUploadApi = TaximeterUploadAPI();
   final ImagePicker _imagePicker = ImagePicker();
 
+  File? _selectedImageFile;
+  String? _taximeterImageUrl;
+  SettlementData? _settlementData;
+  bool _isLoadingSettlement = true;
+  bool _isUploadingImage = false;
+  bool _isRequestingSettlement = false;
+  bool _hasLeftAfterCompletion = false;
+  Timer? _settlementStatusTimer;
+  String? _error;
+
   @override
-  Widget build(BuildContext context) {
-    final String departure = widget.matchData['departure'] ?? '출발지 정보 없음';
-    final String destination = widget.matchData['destination'] ?? '목적지 정보 없음';
-    final int fare = widget.matchData['fare'] ?? 0;
+  void initState() {
+    super.initState();
+    final fare = widget.matchData['fare'];
+    if (fare is num && fare > 0) {
+      _fareInputController.text = fare.toInt().toString();
+    }
+    _fareInputController.addListener(_recalculate);
+    _loadSettlement();
+    _startSettlementStatusPolling();
+  }
 
-     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
-              const Center(
-                child: Icon(Icons.check_circle, color: Color(0xFF3F51B5), size: 80),
-              ),
-              const SizedBox(height: 15),
-              const Center(
-                child: Text("동승자 매칭이 완료되었습니다!\n하차시 정산을 위해 미터기 사진을 찍어주세요.", 
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 15),
-              
-              Center(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    // 채팅방 이동 로직
-                    final int resId = widget.matchData['id'] ?? 0; 
-    
-                    if (resId != 0) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                        builder: (context) => MateChatScreen(
-                        reservationId: resId, 
-                        title: "동승자 채팅방",
-                      ),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("찾을 수 없습니다.")),
-                  );
-                }
-                  },
-                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                  label: const Text("해당 채팅방으로 이동하기"),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black54,
-                    side: const BorderSide(color: Colors.black26),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 25),
-              // 정보 표시 박스
-              _buildInfoCard(departure, destination, fare),
-              
-              const SizedBox(height: 20),
-              
-              // 미터기 사진 업로드 영역 추가
-              _buildPhotoUploadArea(),
-              const SizedBox(height: 20),
+  @override
+  void dispose() {
+    _fareInputController.removeListener(_recalculate);
+    _fareInputController.dispose();
+    _settlementStatusTimer?.cancel();
+    super.dispose();
+  }
 
-              // 정산하기 버튼
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: _isSettled ? null : () => _handleSettlement(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isSettled ? Colors.grey : Color(0xFF3F51B5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text("정산하기", style: TextStyle(fontSize: 18, color: Colors.white)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+  int get _reservationId {
+    final value = widget.matchData['id'] ?? widget.matchData['reservation_id'];
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  double get _totalFare =>
+      double.tryParse(_fareInputController.text.replaceAll(',', '').trim()) ??
+      0;
+
+  SettlementResult? get _settlement {
+    final data = _settlementData;
+    if (data == null) return null;
+    return calculateSettlement(
+      passengers: data.passengers,
+      totalFare: _totalFare,
+      creatorId: data.reservation.creatorId,
     );
   }
-  // 정산하기 버튼 클릭 시 서버로 금액 전송하는 로직 (나중에 여기에 실제 API 호출 코드 넣을 예정)
-  Future<void> _handleSettlement() async {
-    final String enteredFare = _fareInputController.text;
-    // 1. 입력값 검증
-    if (enteredFare.isEmpty) {
+
+  Future<void> _loadSettlement() async {
+    final reservationId = _reservationId;
+    if (reservationId <= 0) {
+      setState(() {
+        _isLoadingSettlement = false;
+        _error = '예약 정보가 없어 정산 정보를 불러올 수 없습니다.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingSettlement = true;
+      _error = null;
+    });
+
+    try {
+      final data = await SettlementApi.fetchSettlement(reservationId);
+      if (!mounted) return;
+      setState(() {
+        _settlementData = data;
+        _isLoadingSettlement = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingSettlement = false;
+        _error = error.toString();
+      });
+    }
+  }
+
+  void _recalculate() {
+    if (mounted) setState(() {});
+  }
+
+  void _startSettlementStatusPolling() {
+    _settlementStatusTimer?.cancel();
+    _settlementStatusTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _checkSettlementCompletion(),
+    );
+  }
+
+  Future<void> _checkSettlementCompletion() async {
+    final reservationId = _reservationId;
+    if (reservationId <= 0 || _hasLeftAfterCompletion) return;
+
+    try {
+      final status = await SettlementApi.fetchSettlementStatus(reservationId);
+      if (!mounted || _hasLeftAfterCompletion) return;
+
+      final finalSettlerId = status['final_settler_id']?.toString();
+      final currentUserId = _settlementData?.currentUserId;
+      final isFinalSettler =
+          currentUserId != null && finalSettlerId == currentUserId;
+      if (isFinalSettler && status['completed'] == true) {
+        _hasLeftAfterCompletion = true;
+        _settlementStatusTimer?.cancel();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('모든 송금이 완료되어 매칭을 종료했습니다.')),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (_) {
+      // Polling failures are ignored so the settlement screen can keep working.
+    }
+  }
+
+  Future<void> _pickAndUploadTaximeterImage(ImageSource source) async {
+    final reservationId = _reservationId;
+    if (reservationId <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('금액을 입력해주세요.')),
+        const SnackBar(content: Text('예약 정보가 없어 미터기 사진을 업로드할 수 없습니다.')),
       );
       return;
     }
-    // 2. 서버로 전송할 데이터 준비
-    final int fareValue = int.tryParse(enteredFare) ?? 0;
-    final int resId = widget.matchData['id'] ?? 0;
-    // 로그인 시 저장해둔 토큰 가져오기 (이전 코드 참고)
-    final String? token = await AuthTokenStorage.getToken(); 
 
-    try {
-      // 3. API 호출
-      final response = await http.post(
-        Uri.parse("http://10.0.2.2:3000/api/settles/$resId/total_upload"),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({'fare': fareValue}),
-      );
-      // 4. 응답 확인 및 결과 처리
-      if (response.statusCode == 200) {
-        setState(() {
-          _isSettled = true;
-        });
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('정산 금액이 서버에 전달되었습니다!')));
-      } else {
-        print("서버 응답 오류: ${response.statusCode}");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('서버 전송 실패')));
-      }
-    } catch (e) {
-      print("통신 실패: $e");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('통신 중 오류가 발생했습니다.')));
-    }
-  }
-  // 미터기 이미지 업로드
-  Future<void> _pickAndUploadTaxiMeterImage(ImageSource source) async {
-    try {
-      // 5MB 이하 이미지 선택
-      final pickedFile = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-      if (pickedFile == null) return;
+    final pickedFile = await _imagePicker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+    if (pickedFile == null) return;
 
-      final imageFile = File(pickedFile.path);
-      setState(() {
-        _selectedImageFile = imageFile;
-        _isUploadingImage = true;
-      });
+    setState(() {
+      _selectedImageFile = File(pickedFile.path);
+      _isUploadingImage = true;
+    });
 
-      final reservationId = widget.matchData['id'];
-      if (reservationId is! int || reservationId <= 0) {
-        setState(() => _isUploadingImage = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('예약 정보가 없어 미터기 업로드를 진행할 수 없습니다.')),
-        );
-        return;
-      }
+    final uploadResult = await _taximeterUploadApi.uploadTaximeterImage(
+      _selectedImageFile!,
+      reservationId: reservationId,
+    );
+    if (!mounted) return;
 
-      // 1. 미터기 이미지 업로드
-      final uploadResult = await _taxmeterUploadAPI.uploadTaximeterImage(
-        imageFile,
-        reservationId: reservationId,
-      );
-      // 업로드 완료 후 상태 업데이트
-      if (!mounted) return;
-
-      if (uploadResult.isSuccess) {
-        // 1. 업로드 성공 시 이미지 URL 저장 및 사용자에게 알림
-        setState(() {
-          _TaxiImageUrl = uploadResult.imageUrl;
-          _isUploadingImage = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('사진이 저장되었습니다.')),
-        );
-        // 2. 업로드 성공 시 금액 인식 API 호출 후 결과 표기
-        final recognizedFare = await TaximeterExtractAPI.recognizeFareFromImage(_TaxiImageUrl!);
-        if (recognizedFare.isSuccess) {
-          setState(() {
-            _fareInputController.text = recognizedFare.fare.toString();
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(recognizedFare.errorMessage ?? '금액 인식에 실패했습니다.')),
-          );
-        }
-      } else {
-        setState(() => _isUploadingImage = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              uploadResult.errorMessage ?? ' 사진 업로드에 실패했습니다.',
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
+    if (!uploadResult.isSuccess) {
       setState(() => _isUploadingImage = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('사진 선택 오류: $e')),
+        SnackBar(content: Text(uploadResult.errorMessage ?? '사진 업로드에 실패했습니다.')),
+      );
+      return;
+    }
+
+    _taximeterImageUrl = uploadResult.imageUrl;
+    final recognizedFare = await TaximeterExtractAPI.recognizeFareFromImage(
+      _taximeterImageUrl!,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _isUploadingImage = false;
+      if (recognizedFare.isSuccess) {
+        _fareInputController.text = recognizedFare.fare.toString();
+      }
+    });
+
+    if (!recognizedFare.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(recognizedFare.errorMessage ?? '금액 인식에 실패했습니다.'),
+        ),
       );
     }
   }
 
-  // 사진 선택 옵션 시트 표시
   Future<void> _showImageSourceSheet() async {
-    showModalBottomSheet(
+    await showModalBottomSheet<void>(
       context: context,
       builder: (context) => SafeArea(
         child: Wrap(
@@ -252,7 +215,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
               title: const Text('갤러리에서 선택'),
               onTap: () {
                 Navigator.pop(context);
-                _pickAndUploadTaxiMeterImage(ImageSource.gallery);
+                _pickAndUploadTaximeterImage(ImageSource.gallery);
               },
             ),
             ListTile(
@@ -260,7 +223,7 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
               title: const Text('카메라로 촬영'),
               onTap: () {
                 Navigator.pop(context);
-                _pickAndUploadTaxiMeterImage(ImageSource.camera);
+                _pickAndUploadTaximeterImage(ImageSource.camera);
               },
             ),
           ],
@@ -269,76 +232,408 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
     );
   }
 
-  // 사진 업로드 위젯
-  Widget _buildPhotoUploadArea() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("미터기 사진을 올려주세요", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 10),
-        InkWell(
-          onTap: _isUploadingImage ? null : _showImageSourceSheet,
-          child: _selectedImageFile == null
-              ? Container(
-            width: double.infinity,
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AuthColors.gray, width: 1),
-            ),
-            child:Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.upload_sharp, color: Colors.grey[600], size: 40),
-                    const SizedBox(height: 8),
-                    Text("총 금액이 보이게 확인해주세요", style: TextStyle(color: Colors.grey[600])),
-                  ],
-                ),                
-              )
-              : TextFormField(
-                controller: _fareInputController, // 컨트롤러 연결
-                keyboardType: TextInputType.number, // 숫자 키패드가 뜨도록 설정
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w300),
-                decoration: InputDecoration(
-                  hintText: '금액이 인식되면 여기에 표시됩니다.',
-                  suffixText: '원', // 오른쪽에 '원' 표시 고정
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AuthColors.gray, width: 1), // 기본 회색 테두리
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AuthColors.bluePrimary, width: 2), // 포커스 시 파란색 테두리
-                  ),
-                ),
-                // 사용자가 직접 값을 수정할 때마다 실행되는 이벤트
-                onChanged: (value) {
-                  _fareInputController.text = value;
-                  developer.log('사용자가 수정한 금액: $_fareInputController.text');
-              },
-            ),
-          ),
-      ],
+  void _openChat() {
+    final reservationId = _reservationId;
+    if (reservationId <= 0) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            MateChatScreen(reservationId: reservationId, title: '동승자 채팅방'),
+      ),
     );
   }
 
-  Widget _buildInfoCard(String dep, String dest, int fare) {
+  Future<void> _requestSettlement() async {
+    final reservationId = _reservationId;
+    if (reservationId <= 0 || _isRequestingSettlement) return;
+
+    setState(() => _isRequestingSettlement = true);
+    try {
+      await SettlementApi.requestSettlement(
+        reservationId: reservationId,
+        totalFare: _totalFare,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('정산 알림을 보냈습니다.')));
+      await _checkSettlementCompletion();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isRequestingSettlement = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = _settlementData;
+    final settlement = _settlement;
+    final currentUserId = data?.currentUserId ?? '';
+    final finalSettler = settlement?.finalSettler;
+    final isFinalSettler = finalSettler?.id == currentUserId;
+    final myFare = settlement?.fareByPassenger[currentUserId] ?? 0;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        title: const Text('최종 정산'),
+        actions: [
+          IconButton(
+            onPressed: _openChat,
+            icon: const Icon(Icons.chat_bubble_outline),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: _isLoadingSettlement
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+            ? _ErrorView(message: _error!, onRetry: _loadSettlement)
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Center(
+                      child: Icon(
+                        Icons.check_circle,
+                        color: AuthColors.bluePrimary,
+                        size: 72,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Center(
+                      child: Text(
+                        '동승자 매칭이 완료되었습니다.\n하차 시 정산을 진행하세요.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _RouteInfoCard(data: data!),
+                    const SizedBox(height: 16),
+                    _TaximeterUploadCard(
+                      selectedImageFile: _selectedImageFile,
+                      uploading: _isUploadingImage,
+                      fareController: _fareInputController,
+                      onPickImage: _showImageSourceSheet,
+                    ),
+                    const SizedBox(height: 16),
+                    _MySettlementCard(
+                      isFinalSettler: isFinalSettler,
+                      myFare: myFare,
+                      finalSettlerName: finalSettler?.displayName ?? '최종 정산자',
+                    ),
+                    if (isFinalSettler) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _isRequestingSettlement
+                              ? null
+                              : _requestSettlement,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AuthColors.bluePrimary,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text(
+                            _isRequestingSettlement ? '요청 중' : '정산하기',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    if (settlement != null)
+                      _SettlementBreakdown(data: data, settlement: settlement),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+class _RouteInfoCard extends StatelessWidget {
+  const _RouteInfoCard({required this.data});
+
+  final SettlementData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final reservation = data.reservation;
+    final currentPassenger = data.passengers.firstWhere(
+      (passenger) => passenger.id == data.currentUserId,
+      orElse: () => data.passengers.first,
+    );
+
+    return _InfoCard(
+      title: '이동 정보',
+      children: [
+        _InfoRow('출발지', reservation.departureLocation),
+        _InfoRow(
+          '나의 도착지',
+          currentPassenger.destinationLocation.isNotEmpty
+              ? currentPassenger.destinationLocation
+              : reservation.destinationLocation,
+        ),
+        _InfoRow(
+          '나의 하차 거리',
+          formatDistanceMeters(currentPassenger.dropoffDistanceMeters),
+        ),
+        _InfoRow(
+          '전체 이동 거리',
+          formatDistanceMeters(reservation.routeDistanceMeters),
+        ),
+      ],
+    );
+  }
+}
+
+class _TaximeterUploadCard extends StatelessWidget {
+  const _TaximeterUploadCard({
+    required this.selectedImageFile,
+    required this.uploading,
+    required this.fareController,
+    required this.onPickImage,
+  });
+
+  final File? selectedImageFile;
+  final bool uploading;
+  final TextEditingController fareController;
+  final VoidCallback onPickImage;
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoCard(
+      title: '총 결제금액',
+      children: [
+        InkWell(
+          onTap: uploading ? null : onPickImage,
+          child: Container(
+            width: double.infinity,
+            height: 96,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AuthColors.gray),
+            ),
+            child: Center(
+              child: uploading
+                  ? const CircularProgressIndicator(strokeWidth: 2)
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          selectedImageFile == null
+                              ? Icons.upload_sharp
+                              : Icons.check_circle_outline,
+                          color: AuthColors.grayText,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          selectedImageFile == null
+                              ? '미터기 사진 업로드'
+                              : '사진 업로드 완료',
+                          style: const TextStyle(color: AuthColors.grayText),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: fareController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: '총 결제금액',
+            suffixText: '원',
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MySettlementCard extends StatelessWidget {
+  const _MySettlementCard({
+    required this.isFinalSettler,
+    required this.myFare,
+    required this.finalSettlerName,
+  });
+
+  final bool isFinalSettler;
+  final double myFare;
+  final String finalSettlerName;
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoCard(
+      title: '내 정산',
+      children: [
+        _InfoRow('내 결제금액', formatCurrency(myFare)),
+        _InfoRow('최종 정산자', finalSettlerName),
+        const SizedBox(height: 8),
+        Text(
+          isFinalSettler
+              ? '최종 정산자는 내 금액만 확인하면 됩니다.'
+              : '$finalSettlerName에게 ${formatCurrency(myFare)} 송금하세요.',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AuthColors.bluePrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SettlementBreakdown extends StatelessWidget {
+  const _SettlementBreakdown({required this.data, required this.settlement});
+
+  final SettlementData data;
+  final SettlementResult settlement;
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoCard(
+      title: '참여자별 금액',
+      children: [
+        for (final passenger in data.passengers)
+          _InfoRow(
+            '${passenger.displayName} (${formatDistanceMeters(passenger.dropoffDistanceMeters)})',
+            formatCurrency(settlement.fareByPassenger[passenger.id] ?? 0),
+          ),
+        if (settlement.sections.isNotEmpty) ...[
+          const Divider(height: 24),
+          const Text(
+            '구간별 계산',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          for (final section in settlement.sections)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                '${section.name}: ${formatCurrency(section.sectionFare)} / ${section.activePassengers.length}명',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AuthColors.grayText,
+                ),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8E8E8)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(title: Text("출발지"), trailing: Text(dep)),
-          ListTile(title: Text("하차지"), trailing: Text(dest)),
-          const Divider(),
-          ListTile(title: Text("정산 금액", style: TextStyle(fontWeight: FontWeight.bold)), 
-                   trailing: Text("${fare}원", style: TextStyle(fontWeight: FontWeight.bold, color: AuthColors.bluePrimary))),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          ...children,
         ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 108,
+            child: Text(
+              label,
+              style: const TextStyle(color: AuthColors.grayText),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            TextButton(onPressed: onRetry, child: const Text('다시 시도')),
+          ],
+        ),
       ),
     );
   }

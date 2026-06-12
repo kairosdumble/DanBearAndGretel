@@ -159,7 +159,12 @@ class ProximityMatchApi {
   }
 
   /// 참여자: 승인(방장 요청이 있을 때만 가능)
-  static Future<ProximityConfirmResult> confirm(int reservationId) async {
+  static Future<ProximityConfirmResult> confirm(
+    int reservationId, {
+    String? destinationLocation,
+    double? destinationLat,
+    double? destinationLng,
+  }) async {
     final headers = await _authHeaders();
     if (headers == null) {
       return const ProximityConfirmResult(
@@ -168,10 +173,21 @@ class ProximityMatchApi {
       );
     }
 
+    final body = <String, dynamic>{};
+    if (destinationLocation != null && destinationLocation.trim().isNotEmpty) {
+      body['destination_location'] = destinationLocation.trim();
+    }
+    if (destinationLat != null) {
+      body['destination_lat'] = destinationLat;
+    }
+    if (destinationLng != null) {
+      body['destination_lng'] = destinationLng;
+    }
+
     final response = await http.post(
       Uri.parse('$_baseUrl/api/reservations/proximity/$reservationId/confirm'),
       headers: headers,
-      body: json.encode({}),
+      body: json.encode(body),
     );
 
     if (response.statusCode == 200) {
@@ -203,6 +219,7 @@ class ProximityMatchApi {
     );
     return response.statusCode == 200;
   }
+
 
   static Future<bool> get(int reservationId) async {
     final headers = await _authHeaders();
