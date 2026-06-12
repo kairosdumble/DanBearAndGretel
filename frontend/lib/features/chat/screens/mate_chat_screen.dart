@@ -36,15 +36,7 @@ class MateChatScreen extends StatefulWidget {
 }
 
 class _MateChatScreenState extends State<MateChatScreen> {
-  static const List<String> _weekdayLabels = [
-    '월',
-    '화',
-    '수',
-    '목',
-    '금',
-    '토',
-    '일',
-  ];
+  static const List<String> _weekdayLabels = ['월','화','수','목','금','토','일',];
 
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();

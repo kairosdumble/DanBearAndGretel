@@ -5,6 +5,7 @@ function hasCoordinate(value) {
     return Number.isFinite(number);
 }
 
+// 출발지로부터 도착지까지의 거리표현
 function distanceExpression(fromLat, fromLng, toLat, toLng) {
     return `
     6371000 * 2 * ASIN(
@@ -21,8 +22,7 @@ function distanceExpression(fromLat, fromLng, toLat, toLng) {
 `;
 }
 
-const departureTimeSelect =
-    "to_char(departure_time, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS departure_time";
+const departureTimeSelect = "to_char(departure_time, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS departure_time";
 
 const participantCountSelect = `
     COALESCE(
@@ -31,6 +31,23 @@ const participantCountSelect = `
          WHERE rcp.reservation_id = reservations.id),
         0
     ) AS participant_count`;
+
+function myActiveMatchSelect(userIdPlaceholder) {
+    return `
+        (
+            COALESCE(reservations.status, 'READY') = 'RUNNING'
+            AND (
+                reservations.user_id = ${userIdPlaceholder}
+                OR EXISTS (
+                    SELECT 1
+                    FROM reservation_bluetooth_participants rbp_me
+                    WHERE rbp_me.reservation_id = reservations.id
+                      AND rbp_me.user_id = ${userIdPlaceholder}
+                      AND rbp_me.confirmed_at IS NOT NULL
+                )
+            )
+        ) AS is_my_active_match`;
+}
 
 function haversineMeters(fromLat, fromLng, toLat, toLng) {
     const values = [fromLat, fromLng, toLat, toLng].map(Number);
@@ -160,7 +177,7 @@ const reservationService = {
         return rows;
     },
 
-    getAllReservations: async ({ lat, lng, destinationLat, destinationLng } = {}) => {
+    getAllReservations: async ({ lat, lng, destinationLat, destinationLng, userId } = {}) => {
         if (hasCoordinate(lat) && hasCoordinate(lng)) {
             const distanceFromOrigin = distanceExpression(
                 "$1",
@@ -190,7 +207,8 @@ const reservationService = {
                                 (${originToDestination})
                             )::numeric)::integer
                         ) AS detour_meters,
-                        ${participantCountSelect}
+                        ${participantCountSelect},
+                        ${myActiveMatchSelect("$5")}
                     FROM reservations
                     WHERE departure_lat IS NOT NULL
                       AND departure_lng IS NOT NULL
@@ -201,6 +219,7 @@ const reservationService = {
                     Number(lng),
                     Number(destinationLat),
                     Number(destinationLng),
+                    userId,
                 ]);
                 return rows;
             }
@@ -211,19 +230,20 @@ const reservationService = {
                     ${departureTimeSelect},
                     ROUND((${distanceFromOrigin})::numeric)::integer AS distance_meters,
                     NULL::integer AS detour_meters,
-                    ${participantCountSelect}
+                    ${participantCountSelect},
+                    ${myActiveMatchSelect("$3")}
                 FROM reservations
                 WHERE departure_lat IS NOT NULL
                   AND departure_lng IS NOT NULL
                 ORDER BY distance_meters ASC, reservations.departure_time ASC NULLS LAST, id ASC;
             `;
-            const { rows } = await pool.query(query, [Number(lat), Number(lng)]);
+            const { rows } = await pool.query(query, [Number(lat), Number(lng), userId]);
             return rows;
         }
 
         const query =
-            `SELECT *, ${departureTimeSelect}, NULL::integer AS distance_meters, NULL::integer AS detour_meters, ${participantCountSelect} FROM reservations ORDER BY reservations.departure_time ASC NULLS LAST, id ASC`;
-        const { rows } = await pool.query(query);
+            `SELECT *, ${departureTimeSelect}, NULL::integer AS distance_meters, NULL::integer AS detour_meters, ${participantCountSelect}, ${myActiveMatchSelect("$1")} FROM reservations ORDER BY reservations.departure_time ASC NULLS LAST, id ASC`;
+        const { rows } = await pool.query(query, [userId]);
         return rows;
     },
 

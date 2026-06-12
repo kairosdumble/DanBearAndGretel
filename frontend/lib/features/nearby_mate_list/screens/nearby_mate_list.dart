@@ -139,7 +139,20 @@ class _NearbyMateListState extends State<NearbyMateList> {
     return int.tryParse(raw?.toString() ?? '') ?? 0;
   }
 
-  ({String label, Color color}) _statusStyle(dynamic status) {
+  bool _isMyActiveMatch(Map<String, dynamic> row) {
+    final raw = row['is_my_active_match'];
+    if (raw is bool) return raw;
+    return raw?.toString().toLowerCase() == 'true';
+  }
+
+  ({String label, Color color}) _statusStyle(
+    dynamic status, {
+    required bool isMyActiveMatch,
+  }) {
+    if (isMyActiveMatch) {
+      return (label: '매칭 중', color: Colors.redAccent);
+    }
+
     switch (status?.toString().toUpperCase()) {
       case 'RUNNING':
         return (label: '진행 중', color: AuthColors.bluePrimary);
@@ -285,25 +298,25 @@ class _NearbyMateListState extends State<NearbyMateList> {
                         departureLabel: dep.isEmpty ? '출발지 미정' : dep,
                         destinationLabel: dest.isEmpty ? '도착지 미정' : dest,
                         status: row['status'],
+                        isMyActiveMatch: _isMyActiveMatch(row),
                         participantCount: _participantCount(row),
-                        onTap: reservationId == null
-                            ? null
-                            : () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => MateChatScreen(
-                                      reservationId: reservationId,
-                                      title: chatTitle,
-                                      participantDestinationLocation:
-                                          widget.destination?.name,
-                                      participantDestinationLat:
-                                          widget.destination?.latitude,
-                                      participantDestinationLng:
-                                          widget.destination?.longitude,
-                                    ),
+                        onTap: reservationId == null ? null
+                          : () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => MateChatScreen(
+                                    reservationId: reservationId,
+                                    title: chatTitle,
+                                    participantDestinationLocation:
+                                        widget.destination?.name,
+                                    participantDestinationLat:
+                                        widget.destination?.latitude,
+                                    participantDestinationLng:
+                                        widget.destination?.longitude,
                                   ),
-                                );
-                              },
+                                ),
+                              );
+                            },
                       );
                     }),
                 ],
@@ -321,18 +334,28 @@ class _NearbyMateListState extends State<NearbyMateList> {
     required String departureLabel,
     required String destinationLabel,
     required dynamic status,
+    required bool isMyActiveMatch,
     required int participantCount,
     required VoidCallback? onTap,
   }) {
     final dayBadge = _departureDayBadge(departure);
-    final statusStyle = _statusStyle(status);
+    final statusStyle = _statusStyle(status, isMyActiveMatch: isMyActiveMatch);
     final displayParticipants = participantCount > 0 ? participantCount : 1;
+    final accentColor = isMyActiveMatch
+        ? Colors.redAccent
+        : AuthColors.bluePrimary;
+    final routeTextColor = isMyActiveMatch
+        ? Colors.redAccent
+        : const Color(0xFF111111);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: isMyActiveMatch
+            ? Border.all(color: Colors.redAccent, width: 1.5)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -350,7 +373,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(width: 4, color: AuthColors.bluePrimary),
+                Container(width: 4, color: accentColor),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(8, 14, 8, 14),
@@ -419,8 +442,9 @@ class _NearbyMateListState extends State<NearbyMateList> {
                             children: [
                               _buildRouteRow(
                                 icon: Icons.train_rounded,
-                                iconColor: AuthColors.bluePrimary,
+                                iconColor: accentColor,
                                 label: departureLabel,
+                                textColor: routeTextColor,
                               ),
                               const Padding(
                                 padding: EdgeInsets.only(
@@ -436,8 +460,11 @@ class _NearbyMateListState extends State<NearbyMateList> {
                               ),
                               _buildRouteRow(
                                 icon: Icons.home_rounded,
-                                iconColor: AuthColors.green,
+                                iconColor: isMyActiveMatch
+                                    ? Colors.redAccent
+                                    : AuthColors.green,
                                 label: destinationLabel,
+                                textColor: routeTextColor,
                               ),
                             ],
                           ),
@@ -499,6 +526,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
     required IconData icon,
     required Color iconColor,
     required String label,
+    Color? textColor,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,8 +547,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
               fontSize: 13,
               height: 1.25,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF111111),
-            ),
+            ).copyWith(color: textColor ?? const Color(0xFF111111)),
           ),
         ),
       ],

@@ -11,6 +11,7 @@ const userRoutes = require("./routes/user.routes");
 const imageUploadRoutes = require("./routes/image.routes");
 const settleRoutes = require("./routes/settle.routes");
 const reservationRoutes = require("./routes/reservation.routes");
+const bluetoothRoutes = require("./routes/bluetooth.routes");
 const chatRoutes = require("./routes/chat.routes");
 
 const app = express();
@@ -49,6 +50,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/image", imageUploadRoutes);
 app.use("/api/settle", settleRoutes);
 app.use("/api/reservations", reservationRoutes);
+app.use("/api/bluetooth", bluetoothRoutes);
 app.use("/api/chats", chatRoutes);
 
 function buildTmapPoiUrl(query) {

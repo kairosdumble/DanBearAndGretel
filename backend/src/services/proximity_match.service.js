@@ -335,6 +335,68 @@ async function confirm(reservationId, userId) {
     }
 
     const values = [reservationId, userId];
+}
+
+async function ensureProximitySchema() {
+    await pool.query(`
+        ALTER TABLE reservations
+        ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'READY';
+    `);
+    await pool.query(`
+        ALTER TABLE reservation_bluetooth_participants
+        ADD COLUMN IF NOT EXISTS dropoff_completed BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS distance BIGINT NULL,
+        ADD COLUMN IF NOT EXISTS fare BIGINT NULL,
+        ADD COLUMN IF NOT EXISTS destination_location TEXT NULL,
+        ADD COLUMN IF NOT EXISTS destination_lat DOUBLE PRECISION NULL,
+        ADD COLUMN IF NOT EXISTS destination_lng DOUBLE PRECISION NULL,
+        ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ NULL;
+    `);
+    await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_reservation_bluetooth_participants_unique
+        ON reservation_bluetooth_participants (reservation_id, user_id);
+    `);
+}
+
+function normalizeKoreanCoordinate(lat, lng) {
+    const parsedLat = Number(lat);
+    const parsedLng = Number(lng);
+    if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) {
+        return { lat: null, lng: null };
+    }
+
+    const looksValid = parsedLat >= 30 && parsedLat <= 45 && parsedLng >= 120 && parsedLng <= 140;
+    if (looksValid) {
+        return { lat: parsedLat, lng: parsedLng };
+    }
+
+    const looksSwapped = parsedLng >= 30 && parsedLng <= 45 && parsedLat >= 120 && parsedLat <= 140;
+    if (looksSwapped) {
+        return { lat: parsedLng, lng: parsedLat };
+    }
+
+    return { lat: parsedLat, lng: parsedLng };
+}
+
+async function confirm(reservationId, userId, participantDestination = {}) {
+    await ensureProximitySchema();
+
+    const destinationLocation =
+        typeof participantDestination.destination_location === "string"
+            ? participantDestination.destination_location.trim()
+            : null;
+    const destination = normalizeKoreanCoordinate(
+        participantDestination.destination_lat,
+        participantDestination.destination_lng,
+    );
+    const values = [
+        reservationId,
+        userId,
+        destinationLocation || null,
+        destination.lat,
+        destination.lng,
+    ];
+
     const client = await pool.connect();
 
     try {
@@ -411,7 +473,7 @@ async function confirm(reservationId, userId) {
         try {
             await client.query("ROLLBACK");
         } catch {
-            /* ignore */
+            // Ignore rollback errors.
         }
         throw error;
     } finally {

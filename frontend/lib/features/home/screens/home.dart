@@ -204,7 +204,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
     final response = await http.post(
-      Uri.parse('$baseUrl/api/reservations/proximity/$reservationId/confirm'),
+      Uri.parse('$baseUrl/api/bluetooth/proximity/$reservationId/confirm'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

@@ -81,7 +81,7 @@ class ProximityMatchApi {
     if (headers == null) return false;
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/api/reservations/confirm'),
+      Uri.parse('$_baseUrl/api/bluetooth/confirm'),
       headers: headers,
       body: json.encode({
         'reservation_id': reservationId,
@@ -98,7 +98,7 @@ class ProximityMatchApi {
     if (headers == null) return false;
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/api/reservations/proximity/$reservationId/presence'),
+      Uri.parse('$_baseUrl/api/bluetooth/proximity/$reservationId/presence'),
       headers: headers,
       body: json.encode({}),
     );
@@ -114,7 +114,7 @@ class ProximityMatchApi {
     }
 
     final response = await http.get(
-      Uri.parse('$_baseUrl/api/reservations/proximity/$reservationId/nearby'),
+      Uri.parse('$_baseUrl/api/bluetooth/proximity/$reservationId/nearby'),
       headers: headers,
     );
     if (response.statusCode != 200) {
@@ -147,7 +147,7 @@ class ProximityMatchApi {
 
     final response = await http.get(
       Uri.parse(
-        '$_baseUrl/api/reservations/proximity/$reservationId/approval-status',
+        '$_baseUrl/api/bluetooth/proximity/$reservationId/approval-status',
       ),
       headers: headers,
     );
@@ -185,7 +185,7 @@ class ProximityMatchApi {
     }
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/api/reservations/proximity/$reservationId/confirm'),
+      Uri.parse('$_baseUrl/api/bluetooth/proximity/$reservationId/confirm'),
       headers: headers,
       body: json.encode(body),
     );
@@ -213,7 +213,7 @@ class ProximityMatchApi {
     if (headers == null) return false;
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/api/reservations/proximity/$reservationId/cancel'),
+      Uri.parse('$_baseUrl/api/bluetooth/proximity/$reservationId/cancel'),
       headers: headers,
       body: json.encode({}),
     );
@@ -226,7 +226,7 @@ class ProximityMatchApi {
     if (headers == null) return false;
 
     final response = await http.get(
-      Uri.parse('$_baseUrl/api/reservations/proximity/$reservationId/get'),
+      Uri.parse('$_baseUrl/api/bluetooth/proximity/$reservationId/get'),
       headers: headers,
     );
     if (response.statusCode == 200) return true;
