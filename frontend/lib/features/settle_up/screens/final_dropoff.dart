@@ -11,6 +11,7 @@ import '../models/settlement_calculator.dart';
 import '../services/images/taximeter_extract_api.dart';
 import '../services/images/taximeter_upload_api.dart';
 import '../services/settlement_api.dart';
+import '../widgets/settlement_chat_link.dart';
 
 class FinalDropoffScreen extends StatefulWidget {
   const FinalDropoffScreen({super.key, required this.matchData});
@@ -289,12 +290,6 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
         foregroundColor: Colors.black,
         elevation: 0,
         title: const Text('최종 정산'),
-        actions: [
-          IconButton(
-            onPressed: _openChat,
-            icon: const Icon(Icons.chat_bubble_outline),
-          ),
-        ],
       ),
       body: SafeArea(
         child: _isLoadingSettlement
@@ -324,6 +319,8 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    SettlementChatLink(onIconTap: _openChat),
                     const SizedBox(height: 24),
                     _RouteInfoCard(data: data!),
                     const SizedBox(height: 16),

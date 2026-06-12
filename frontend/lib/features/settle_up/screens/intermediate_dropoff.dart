@@ -7,6 +7,7 @@ import 'package:frontend/features/chat/screens/mate_chat_screen.dart';
 
 import '../models/settlement_calculator.dart';
 import '../services/settlement_api.dart';
+import '../widgets/settlement_chat_link.dart';
 
 class IntermediateDropoffScreen extends StatefulWidget {
   const IntermediateDropoffScreen({super.key, this.matchData});
@@ -153,12 +154,6 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
         foregroundColor: Colors.black,
         elevation: 0,
         title: const Text('중도 하차 정산'),
-        actions: [
-          IconButton(
-            onPressed: _openChat,
-            icon: const Icon(Icons.chat_bubble_outline),
-          ),
-        ],
       ),
       body: SafeArea(
         child: _loading
@@ -187,6 +182,8 @@ class _IntermediateDropoffScreenState extends State<IntermediateDropoffScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    SettlementChatLink(onIconTap: _openChat),
                     const SizedBox(height: 24),
                     _InfoCard(
                       title: '이동 정보',

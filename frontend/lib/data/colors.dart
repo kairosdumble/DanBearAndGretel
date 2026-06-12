@@ -23,7 +23,9 @@ class AuthColors {
   // 흰색
   static const Color white = Color(0xFFFFFFFF);
   // 회색
-  static const Color gray = Color(0xFFD9D9D9);
+  static const Color gray = Color(0xFFD9D9D9); 
+  // 짙은 회색
+  static const Color darkGray = Color(0xFFB9B9B9);
   //빨간색
   static const Color red = Color(0xFFBB1B1B);
   //노랑색
