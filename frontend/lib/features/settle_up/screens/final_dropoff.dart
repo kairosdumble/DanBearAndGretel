@@ -30,7 +30,6 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
   final ImagePicker _imagePicker = ImagePicker();
 
   File? _selectedImageFile;
-  String? _taximeterImageUrl;
   SettlementData? _settlementData;
   bool _isLoadingSettlement = true;
   bool _isUploadingImage = false;
@@ -183,9 +182,8 @@ class _FinalDropoffScreenState extends State<FinalDropoffScreen> {
       return;
     }
 
-    _taximeterImageUrl = uploadResult.imageUrl;
     final recognizedFare = await TaximeterExtractAPI.recognizeFareFromImage(
-      _taximeterImageUrl!,
+      _selectedImageFile!,
     );
     if (!mounted) return;
 

@@ -293,11 +293,22 @@ async function getApprovalStatus(reservationId, userId) {
     return {
         mode: "can_approve",
         canApprove: true,
-        message: "방장의 확정 요청이 도착했습니다. 승인해 주세요.",
+        message: "방장에게 확정 요청을 전송했습니다. \n승인이 될 때까지 조금만 기다려주세요",
     };
 }
 
-async function confirm(reservationId, userId) {
+async function confirm(reservationId, userId, participantDestination = {}) {
+    await ensureProximitySchema();
+
+    const destinationLocation =
+        typeof participantDestination.destination_location === "string"
+            ? participantDestination.destination_location.trim()
+            : null;
+    const destination = normalizeKoreanCoordinate(
+        participantDestination.destination_lat,
+        participantDestination.destination_lng,
+    );
+
     const pendingRequest = await pool.query(
         `
         SELECT *
@@ -323,18 +334,105 @@ async function confirm(reservationId, userId) {
             return { error: "NOT_INVITED" };
         }
 
-        if (approval.rows[0].approved_at) {
-            return approval.rows[0];
+        if (!approval.rows[0].approved_at) {
+            await approvePendingRequest(
+                pendingRequest.rows[0].id,
+                userId,
+                reservationId,
+            );
         }
-
-        return approvePendingRequest(
-            pendingRequest.rows[0].id,
-            userId,
-            reservationId,
-        );
     }
 
-    const values = [reservationId, userId];
+    const values = [
+        reservationId,
+        userId,
+        destinationLocation || null,
+        destination.lat,
+        destination.lng,
+    ];
+
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        const inserted = await client.query(
+            `
+            INSERT INTO reservation_bluetooth_participants (
+                reservation_id,
+                user_id,
+                destination_location,
+                destination_lat,
+                destination_lng,
+                confirmed_at
+            )
+            SELECT $1, $2, $3, $4, $5, NOW()
+            WHERE EXISTS (SELECT 1 FROM reservations WHERE id = $1)
+            ON CONFLICT (reservation_id, user_id) DO UPDATE
+            SET
+                destination_location = COALESCE(EXCLUDED.destination_location, reservation_bluetooth_participants.destination_location),
+                destination_lat = COALESCE(EXCLUDED.destination_lat, reservation_bluetooth_participants.destination_lat),
+                destination_lng = COALESCE(EXCLUDED.destination_lng, reservation_bluetooth_participants.destination_lng),
+                confirmed_at = COALESCE(reservation_bluetooth_participants.confirmed_at, NOW())
+            RETURNING *;
+            `,
+            values,
+        );
+
+        const participant =
+            inserted.rows[0] ??
+            (
+                await client.query(
+                    `
+                    SELECT *
+                    FROM reservation_bluetooth_participants
+                    WHERE reservation_id = $1 AND user_id = $2;
+                    `,
+                    [reservationId, userId],
+                )
+            ).rows[0];
+
+        if (!participant) {
+            await client.query("ROLLBACK");
+            return null;
+        }
+
+        await client.query(
+            `
+            INSERT INTO reservation_chat_participants (reservation_id, user_id)
+            VALUES ($1, $2)
+            ON CONFLICT (reservation_id, user_id) DO NOTHING;
+            `,
+            [reservationId, userId],
+        );
+
+        await client.query(
+            `
+            UPDATE reservations
+            SET status = 'RUNNING'
+            WHERE id = $1
+              AND status = 'READY'
+              AND EXISTS (
+                SELECT 1
+                FROM reservation_bluetooth_participants
+                WHERE reservation_id = $1
+              );
+            `,
+            [reservationId],
+        );
+
+        await client.query("COMMIT");
+        return participant;
+    } catch (error) {
+        try {
+            await client.query("ROLLBACK");
+        } catch {
+            // Ignore rollback errors.
+        }
+        throw error;
+    } finally {
+        client.release();
+    }
 }
 
 async function ensureProximitySchema() {
@@ -376,109 +474,6 @@ function normalizeKoreanCoordinate(lat, lng) {
     }
 
     return { lat: parsedLat, lng: parsedLng };
-}
-
-async function confirm(reservationId, userId, participantDestination = {}) {
-    await ensureProximitySchema();
-
-    const destinationLocation =
-        typeof participantDestination.destination_location === "string"
-            ? participantDestination.destination_location.trim()
-            : null;
-    const destination = normalizeKoreanCoordinate(
-        participantDestination.destination_lat,
-        participantDestination.destination_lng,
-    );
-    const values = [
-        reservationId,
-        userId,
-        destinationLocation || null,
-        destination.lat,
-        destination.lng,
-    ];
-
-    const client = await pool.connect();
-
-    try {
-        await client.query("BEGIN");
-
-        const inserted = await client.query(
-            `
-            INSERT INTO reservation_bluetooth_participants (
-                reservation_id,
-                user_id,
-                destination_location,
-                destination_lat,
-                destination_lng,
-                confirmed_at
-            )
-            SELECT $1, $2, $3, $4, $5, NOW()
-            WHERE EXISTS (SELECT 1 FROM reservations WHERE id = $1)
-            ON CONFLICT (reservation_id, user_id) DO UPDATE
-            SET
-                destination_location = COALESCE(EXCLUDED.destination_location, reservation_bluetooth_participants.destination_location),
-                destination_lat = COALESCE(EXCLUDED.destination_lat, reservation_bluetooth_participants.destination_lat),
-                destination_lng = COALESCE(EXCLUDED.destination_lng, reservation_bluetooth_participants.destination_lng),
-                confirmed_at = NOW()
-            RETURNING *;
-            `,
-            values,
-        );
-
-        const participant =
-            inserted.rows[0] ??
-            (
-                await client.query(
-                    `
-                    SELECT *
-                    FROM reservation_bluetooth_participants
-                    WHERE reservation_id = $1 AND user_id = $2;
-                    `,
-                    [reservationId, userId],
-                )
-            ).rows[0];
-
-        if (!participant) {
-            await client.query("ROLLBACK");
-            return null;
-        }
-
-        await client.query(
-            `
-            INSERT INTO reservation_chat_participants (reservation_id, user_id)
-            VALUES ($1, $2)
-            ON CONFLICT (reservation_id, user_id) DO NOTHING;
-            `,
-            values,
-        );
-
-        await client.query(
-            `
-            UPDATE reservations
-            SET status = 'RUNNING'
-            WHERE id = $1
-              AND status = 'READY'
-              AND EXISTS (
-                SELECT 1
-                FROM reservation_bluetooth_participants
-                WHERE reservation_id = $1
-              );
-            `,
-            [reservationId],
-        );
-
-        await client.query("COMMIT");
-        return participant;
-    } catch (error) {
-        try {
-            await client.query("ROLLBACK");
-        } catch {
-            // Ignore rollback errors.
-        }
-        throw error;
-    } finally {
-        client.release();
-    }
 }
 
 async function cancel(reservationId, userId) {

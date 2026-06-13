@@ -33,6 +33,31 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
 
   Place? _departure;
   Place? _destination;
+  late DateTime _departureDate;
+
+  static const List<String> _weekdayLabels = ['월', '화', '수', '목', '금', '토', '일'];
+
+  String _formatDepartureDateLabel(DateTime date) {
+    final weekday = _weekdayLabels[date.weekday - 1];
+    return '${date.year}년 ${date.month}월 ${date.day}일 ($weekday)';
+  }
+
+  Future<void> _pickDepartureDate() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _departureDate,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 30)),
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _departureDate = DateTime(picked.year, picked.month, picked.day);
+      });
+    }
+  }
 
   String _formatLocalDateTimeForApi(DateTime value) {
     final year = value.year.toString().padLeft(4, '0');
@@ -48,6 +73,8 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
     super.initState();
     _departure = widget.initialDeparture;
     _destination = widget.initialDestination;
+    final now = DateTime.now();
+    _departureDate = DateTime(now.year, now.month, now.day);
   }
 
   @override
@@ -139,14 +166,21 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
         return;
       }
 
-      final now = DateTime.now();
       final departureTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
+        _departureDate.year,
+        _departureDate.month,
+        _departureDate.day,
         hour,
         minute,
       );
+
+      if (departureTime.isBefore(DateTime.now())) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('출발 일시는 현재 시간 이후여야 합니다.')),
+        );
+        return;
+      }
 
       final response = await http.post(
         Uri.parse('$baseUrl/api/reservations/create'),
@@ -237,7 +271,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 60),
+                const SizedBox(height: 20),
                 const Text(
                   '출발지',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -248,7 +282,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
                   subtitle: _departure?.roadAddress,
                   onTap: () => _openSearch(PlaceSearchType.departure),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
                 const Text(
                   '목적지',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -259,9 +293,50 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
                   subtitle: _destination?.roadAddress,
                   onTap: () => _openSearch(PlaceSearchType.destination),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
                 const Text(
-                  '출발시간',
+                  '출발 날짜',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 14),
+                Material(
+                  color: Colors.white,
+                  child: InkWell(
+                    onTap: _pickDepartureDate,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      height: 50,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _formatDepartureDateLabel(_departureDate),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 20,
+                            color: Colors.grey.shade600,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  '출발 시간',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 14),
@@ -281,7 +356,7 @@ class _NearbyMateDetailState extends State<NearbyMateDetail> {
                     TimeField(controller: minuteController),
                   ],
                 ),
-                const SizedBox(height: 50),
+                const SizedBox(height: 80),
                 SizedBox(
                   width: double.infinity,
                   height: 50,

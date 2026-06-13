@@ -10,6 +10,7 @@ import 'package:frontend/features/bluetooth/screens/bluetooth_connect.dart';
 import 'package:frontend/features/bluetooth/services/ble_proximity_service.dart';
 import 'package:frontend/features/bluetooth/services/bluetooth_readiness_service.dart';
 import 'package:frontend/features/bluetooth/services/proximity_match_api.dart';
+import 'package:frontend/features/bluetooth/services/reservation_api.dart';
 
 /// 예약 생성자(방장)용 BLE 근접 매칭 화면.
 class BluetoothLeaderScreen extends StatefulWidget {
@@ -35,6 +36,7 @@ class _BluetoothLeaderScreenState extends State<BluetoothLeaderScreen>
   Timer? _scanRestartTimer;
 
   bool _isSubmitting = false;
+  bool _isDeleting = false;
   bool _isBluetoothReady = false;
   int _elapsedSeconds = 0;
   int _bleNearbyCount = 0;
@@ -44,7 +46,7 @@ class _BluetoothLeaderScreenState extends State<BluetoothLeaderScreen>
   String? _nearbyError;
 
   bool get _canSubmit =>
-      _isBluetoothReady && !_isSubmitting && _selectedUserIds.isNotEmpty;
+      !_isSubmitting && !_isDeleting && _selectedUserIds.isNotEmpty;
 
   @override
   void initState() {
@@ -220,6 +222,89 @@ class _BluetoothLeaderScreenState extends State<BluetoothLeaderScreen>
     }
   }
 
+  Future<void> _onDeleteReservation() async {
+    if (_isSubmitting || _isDeleting) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          title: const Text(
+            '예약을 삭제할까요?',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: AuthColors.blackText,
+            ),
+          ),
+          content: const Text(
+            '매칭을 중단하고 이 예약을 삭제합니다.\n삭제 후에는 복구할 수 없습니다.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.45,
+              color: AuthColors.grayText,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text(
+                '취소',
+                style: TextStyle(
+                  color: AuthColors.grayText,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text(
+                '삭제',
+                style: TextStyle(
+                  color: AuthColors.red,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      final result = await ReservationApi.deleteReservation(
+        widget.reservationId,
+      );
+      if (!mounted) return;
+
+      if (result.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.message)),
+        );
+        Navigator.of(context).pop('reservation_deleted');
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('서버 연결에 실패했습니다.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
   @override
   void dispose() {
     _elapsedTimer?.cancel();
@@ -295,7 +380,7 @@ class _BluetoothLeaderScreenState extends State<BluetoothLeaderScreen>
               ),
             ),
             const Text(
-              '동승자 선택 (방장)',
+              '동승자 선택',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -437,40 +522,82 @@ class _BluetoothLeaderScreenState extends State<BluetoothLeaderScreen>
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-              child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _canSubmit ? _onConfirmGroup : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AuthColors.bluePrimary,
-                    foregroundColor: AuthColors.whiteText,
-                    disabledBackgroundColor:
-                        AuthColors.bluePrimary.withValues(alpha: 0.45),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _canSubmit ? _onConfirmGroup : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AuthColors.bluePrimary,
+                        foregroundColor: AuthColors.whiteText,
+                        disabledBackgroundColor:
+                            AuthColors.bluePrimary.withValues(alpha: 0.45),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: AuthColors.whiteText,
+                              ),
+                            )
+                          : Text(
+                              _selectedUserIds.isEmpty
+                                  ? '동승자를 선택하세요'
+                                  : '선택 ${_selectedUserIds.length}명 확정 요청',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
                   ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: AuthColors.whiteText,
-                          ),
-                        )
-                      : Text(
-                          _selectedUserIds.isEmpty
-                              ? '동승자를 선택하세요'
-                              : '선택 ${_selectedUserIds.length}명 확정 요청',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: OutlinedButton.icon(
+                      onPressed: (_isSubmitting || _isDeleting)
+                          ? null
+                          : _onDeleteReservation,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AuthColors.red,
+                        disabledForegroundColor:
+                            AuthColors.red.withValues(alpha: 0.4),
+                        side: BorderSide(
+                          color: AuthColors.red.withValues(alpha: 0.55),
                         ),
-                ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: _isDeleting
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AuthColors.red.withValues(alpha: 0.7),
+                              ),
+                            )
+                          : const Icon(Icons.delete_outline, size: 20),
+                      label: Text(
+                        _isDeleting ? '삭제 중…' : '매칭 취소 · 예약 삭제',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

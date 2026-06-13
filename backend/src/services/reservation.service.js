@@ -285,6 +285,51 @@ const reservationService = {
         return rows[0];
     },
 
+    deleteReservation: async (reservationId, userId) => {
+        await ensureSettlementColumns();
+
+        const reservationResult = await pool.query(
+            `SELECT id, user_id, status FROM reservations WHERE id = $1`,
+            [reservationId],
+        );
+        const reservation = reservationResult.rows[0];
+        if (!reservation) {
+            return { error: "NOT_FOUND" };
+        }
+        if (String(reservation.user_id) !== String(userId)) {
+            return { error: "NOT_OWNER" };
+        }
+
+        const status = String(reservation.status || "READY").toUpperCase();
+        if (status !== "READY" && status !== "MATCHED") {
+            return { error: "NOT_DELETABLE" };
+        }
+
+        await pool.query(
+            `
+            UPDATE reservation_proximity_requests
+            SET status = 'CANCELLED'
+            WHERE reservation_id = $1 AND status = 'PENDING';
+            `,
+            [reservationId],
+        );
+
+        const deleteResult = await pool.query(
+            `
+            DELETE FROM reservations
+            WHERE id = $1 AND user_id = $2
+            RETURNING id;
+            `,
+            [reservationId, userId],
+        );
+
+        if (!deleteResult.rows[0]) {
+            return { error: "NOT_FOUND" };
+        }
+
+        return { deleted: true, id: deleteResult.rows[0].id };
+    },
+
     getReservationById: async (reservationId) => {
         const query = `
             SELECT *, ${departureTimeSelect}, ${participantCountSelect}
@@ -308,6 +353,7 @@ const reservationService = {
                 rbp_me.destination_lng AS my_destination_lng,
                 rbp_me.settlement_paid AS my_settlement_paid,
                 rbp_me.confirmed_at AS my_confirmed_at,
+                COALESCE(rbp_me.dropoff_completed, FALSE) AS my_dropoff_completed,
                 match_meta.latest_confirmed_at
             FROM reservations r
             LEFT JOIN reservation_bluetooth_participants rbp_me
@@ -437,9 +483,10 @@ const reservationService = {
             )
                 ? savedDistance
                 : null;
-            const dropoffDistance = computedDistance ??
-                savedPlausibleDistance ??
-                routeDistanceMeters;
+            const hasCompletedDropoff = row.dropoff_completed === true;
+            const dropoffDistance = hasCompletedDropoff
+                ? (savedPlausibleDistance ?? computedDistance ?? routeDistanceMeters)
+                : routeDistanceMeters;
             participantsById.set(String(row.id), {
                 id: String(row.id),
                 name: row.name,
@@ -468,6 +515,119 @@ const reservationService = {
             },
             participants: Array.from(participantsById.values()),
         };
+    },
+
+    recordParticipantDropoff: async (reservationId, userId, destinationOverride = {}) => {
+        await ensureSettlementColumns();
+
+        const reservationResult = await pool.query(
+            `
+            SELECT *
+            FROM reservations
+            WHERE id = $1
+            `,
+            [reservationId],
+        );
+        const reservation = reservationResult.rows[0];
+        if (!reservation) {
+            return { error: "NOT_FOUND" };
+        }
+        if (String(reservation.user_id) === String(userId)) {
+            return { error: "CREATOR" };
+        }
+        if (String(reservation.status || "READY").toUpperCase() !== "RUNNING") {
+            return { error: "NOT_RUNNING" };
+        }
+
+        const participantResult = await pool.query(
+            `
+            SELECT *
+            FROM reservation_bluetooth_participants
+            WHERE reservation_id = $1 AND user_id = $2
+            `,
+            [reservationId, userId],
+        );
+        const participant = participantResult.rows[0];
+        if (!participant || participant.confirmed_at == null) {
+            return { error: "NOT_PARTICIPANT" };
+        }
+        if (participant.dropoff_completed === true) {
+            return { error: "ALREADY_COMPLETED" };
+        }
+
+        const destinationLocation =
+            typeof destinationOverride.destination_location === "string"
+                ? destinationOverride.destination_location.trim()
+                : participant.destination_location;
+        const destinationLat =
+            destinationOverride.destination_lat ?? participant.destination_lat;
+        const destinationLng =
+            destinationOverride.destination_lng ?? participant.destination_lng;
+
+        const reservationDeparture = normalizeKoreanCoordinate(
+            reservation.departure_lat,
+            reservation.departure_lng,
+        );
+        const participantDestination = normalizeKoreanCoordinate(
+            destinationLat,
+            destinationLng,
+        );
+        const routeDistanceMeters = haversineMeters(
+            reservationDeparture.lat,
+            reservationDeparture.lng,
+            normalizeKoreanCoordinate(
+                reservation.destination_lat,
+                reservation.destination_lng,
+            ).lat,
+            normalizeKoreanCoordinate(
+                reservation.destination_lat,
+                reservation.destination_lng,
+            ).lng,
+        );
+        const dropoffDistance = haversineMeters(
+            reservationDeparture.lat,
+            reservationDeparture.lng,
+            participantDestination.lat,
+            participantDestination.lng,
+        );
+
+        if (
+            !Number.isFinite(participantDestination.lat) ||
+            !Number.isFinite(participantDestination.lng)
+        ) {
+            return { error: "NO_DESTINATION" };
+        }
+
+        const safeDistance = isPlausibleDropoffDistance(
+            dropoffDistance,
+            routeDistanceMeters,
+        )
+            ? Math.round(dropoffDistance)
+            : Math.round(routeDistanceMeters);
+
+        const updateResult = await pool.query(
+            `
+            UPDATE reservation_bluetooth_participants
+            SET
+                dropoff_completed = TRUE,
+                distance = $3,
+                destination_location = COALESCE($4, destination_location),
+                destination_lat = COALESCE($5, destination_lat),
+                destination_lng = COALESCE($6, destination_lng)
+            WHERE reservation_id = $1 AND user_id = $2
+            RETURNING *;
+            `,
+            [
+                reservationId,
+                userId,
+                safeDistance,
+                destinationLocation || null,
+                participantDestination.lat,
+                participantDestination.lng,
+            ],
+        );
+
+        return { participant: updateResult.rows[0], distance_meters: safeDistance };
     },
 };
 

@@ -79,6 +79,50 @@ class SettlementApi {
     return Map<String, dynamic>.from(decoded);
   }
 
+  /// 중도 하차자: 하차 완료 및 하차 위치 저장
+  static Future<({bool success, String message})> recordDropoff({
+    required int reservationId,
+    String? destinationLocation,
+    double? destinationLat,
+    double? destinationLng,
+  }) async {
+    final token = await AuthTokenStorage.getToken();
+    if (token == null || token.isEmpty) {
+      return (success: false, message: '로그인이 필요합니다.');
+    }
+
+    final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
+    final body = <String, dynamic>{};
+    if (destinationLocation != null && destinationLocation.trim().isNotEmpty) {
+      body['destination_location'] = destinationLocation.trim();
+    }
+    if (destinationLat != null) {
+      body['destination_lat'] = destinationLat;
+    }
+    if (destinationLng != null) {
+      body['destination_lng'] = destinationLng;
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/settle/$reservationId/dropoff'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final message = _messageFromBody(response.body) ?? '하차 정보가 저장되었습니다.';
+      return (success: true, message: message);
+    }
+
+    return (
+      success: false,
+      message: _messageFromBody(response.body) ?? '하차 정보 저장에 실패했습니다.',
+    );
+  }
+
   static Future<void> requestSettlement({
     required int reservationId,
     required num totalFare,

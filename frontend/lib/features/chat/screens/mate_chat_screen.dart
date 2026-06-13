@@ -173,7 +173,7 @@ class _MateChatScreenState extends State<MateChatScreen> {
     final isLeader = await _isReservationLeader();
     if (!mounted) return;
 
-    final matched = await Navigator.of(context).push<bool>(
+    final matched = await Navigator.of(context).push<dynamic>(
       MaterialPageRoute(
         builder: (_) => isLeader
             ? BluetoothLeaderScreen(reservationId: widget.reservationId)
@@ -185,7 +185,12 @@ class _MateChatScreenState extends State<MateChatScreen> {
               ),
       ),
     );
-    if (matched == true && mounted) {
+    if (!mounted) return;
+    if (matched == 'reservation_deleted') {
+      Navigator.of(context).pop();
+      return;
+    }
+    if (matched == true) {
       setState(() => _isMatching = true);
     }
   }

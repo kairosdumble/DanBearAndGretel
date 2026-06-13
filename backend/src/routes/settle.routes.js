@@ -7,6 +7,7 @@ router.use(authenticate);
 
 router.get("/notification", settleController.getSettlementNotification);
 router.get("/:reservationId/status", settleController.getSettlementStatus);
+router.post("/:reservationId/dropoff", settleController.recordDropoff);
 router.post("/:reservationId/request", settleController.requestSettlement);
 router.post("/:reservationId/transfer", settleController.transferSettlement);
 

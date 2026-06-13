@@ -63,6 +63,7 @@ class _NearbyMateListState extends State<NearbyMateList> {
           _reservations = list
               .whereType<Map>()
               .map((e) => Map<String, dynamic>.from(e))
+              .where((row) => !_isCompletedReservation(row))
               .toList();
           _loading = false;
         });
@@ -145,12 +146,16 @@ class _NearbyMateListState extends State<NearbyMateList> {
     return raw?.toString().toLowerCase() == 'true';
   }
 
+  bool _isCompletedReservation(Map<String, dynamic> row) {
+    return row['status']?.toString().toUpperCase() == 'COMPLETED';
+  }
+
   ({String label, Color color}) _statusStyle(
     dynamic status, {
     required bool isMyActiveMatch,
   }) {
     if (isMyActiveMatch) {
-      return (label: '매칭 중', color: Colors.redAccent);
+      return (label: ' 현재 예약 중', color: Colors.redAccent);
     }
 
     switch (status?.toString().toUpperCase()) {

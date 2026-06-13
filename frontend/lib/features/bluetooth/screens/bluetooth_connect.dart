@@ -39,6 +39,7 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
   bool _isSubmitting = false;
   bool _isBluetoothReady = false;
   bool _canApprove = false;
+  bool _autoConfirmStarted = false;
   String _approvalMessage = '방장의 확정 요청을 기다리는 중입니다.';
   int _nearbyCount = 0;
   int _elapsedSeconds = 0;
@@ -76,9 +77,56 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
 
   void _startApprovalPolling() {
     _refreshApprovalStatus();
-    _approvalPollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+    _approvalPollTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _refreshApprovalStatus();
     });
+  }
+
+  void _leaveMatchingScreen({required bool matched, String? message}) {
+    if (!mounted) return;
+    if (message != null && message.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+    Navigator.of(context).pop(matched);
+  }
+
+  Future<void> _autoConfirmSelection() async {
+    if (_isSubmitting || _autoConfirmStarted) return;
+    _autoConfirmStarted = true;
+    setState(() => _isSubmitting = true);
+
+    try {
+      final result = await ProximityMatchApi.confirm(
+        widget.reservationId,
+        destinationLocation: widget.destinationLocation,
+        destinationLat: widget.destinationLat,
+        destinationLng: widget.destinationLng,
+      );
+      if (!mounted) return;
+
+      if (result.success) {
+        _leaveMatchingScreen(
+          matched: true,
+          message: '방장이 선택한 동승자로 매칭되었습니다.',
+        );
+        return;
+      }
+
+      _autoConfirmStarted = false;
+      setState(() {
+        _isSubmitting = false;
+        _approvalMessage = result.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      _autoConfirmStarted = false;
+      setState(() {
+        _isSubmitting = false;
+        _approvalMessage = '자동 매칭 처리에 실패했습니다. 매칭 승인 버튼을 눌러 주세요.';
+      });
+    }
   }
 
   Future<void> _refreshApprovalStatus() async {
@@ -88,7 +136,26 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
     if (!mounted || status == null) return;
 
     if (status.mode == 'matched') {
-      Navigator.of(context).pop(true);
+      _leaveMatchingScreen(matched: true);
+      return;
+    }
+
+    if (status.mode == 'already_approved') {
+      _leaveMatchingScreen(
+        matched: true,
+        message: '매칭 승인이 완료되었습니다.',
+      );
+      return;
+    }
+
+    if (status.mode == 'can_approve') {
+      setState(() {
+        _canApprove = true;
+        if (status.message.isNotEmpty) {
+          _approvalMessage = status.message;
+        }
+      });
+      await _autoConfirmSelection();
       return;
     }
 
@@ -203,7 +270,7 @@ class _BluetoothMatchingScreenState extends State<BluetoothMatchingScreen>
       );
       if (!mounted) return;
       if (result.success) {
-        Navigator.of(context).pop(true);
+        _leaveMatchingScreen(matched: true, message: result.message);
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(

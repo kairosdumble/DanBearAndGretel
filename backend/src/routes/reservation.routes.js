@@ -9,6 +9,7 @@ router.post("/create", reservationController.createReservation); // 새 예약 �
 router.get("/all", reservationController.getAllReservations); // 모든 DB 예약들 정보 받아오기
 router.get("/active-match", reservationController.getActiveMatchedReservation); 
 router.get("/:id/settlement", reservationController.getSettlementDetails);
+router.delete("/:id", reservationController.deleteReservation);
 router.get("/:id", reservationController.getReservationById);
 router.put("/put/:id", reservationController.putReservation); // 
 

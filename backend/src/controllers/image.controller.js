@@ -154,7 +154,7 @@ async function extractTaxiMeterImage(req, res) {
   } catch (error) {
     console.error("extractTaxiMeterImage 에러:", error);
     return res.status(500).json({
-      message: "미터기 이미지 추출 서버 오류가 발생했습니다.",
+      message: error.message || "미터기 이미지 추출 서버 오류가 발생했습니다.",
       detail: error.message,
     });
   }

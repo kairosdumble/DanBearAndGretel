@@ -26,15 +26,10 @@ class TaximeterUploadAPI {
         return const TaximeterUploadResult(errorMessage: '로그인 토큰이 없습니다.');
       }
 
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/api/image/upload'),
-      );
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/image/taxi_meter/upload'),);
       request.headers['Authorization'] = 'Bearer $token';
       request.fields['reservation_id'] = reservationId.toString();
-      request.files.add(
-        await http.MultipartFile.fromPath('image', imageFile.path),
-      );
+      request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
 
       final response = await request.send();
       final responseData = await response.stream.bytesToString();
@@ -54,7 +49,6 @@ class TaximeterUploadAPI {
           developer.log('미터기 업로드 detail: ${body['detail']}');
         }
       } catch (_) {}
-
       developer.log('미터기 이미지 업로드 실패: $message');
       return TaximeterUploadResult(errorMessage: message);
     } catch (e) {

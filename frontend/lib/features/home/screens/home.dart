@@ -9,6 +9,7 @@ import 'package:frontend/core/auth/auth_token_storage.dart';
 import 'package:frontend/core/widgets/search_box_button.dart';
 import 'package:frontend/data/colors.dart';
 
+import 'package:frontend/features/bluetooth/services/proximity_match_api.dart';
 import '../../nearby_mate_list/screens/nearby_mate_list.dart';
 import '../../route_search/screens/place_search.dart';
 import '../../setting/screens/setting_screen.dart';
@@ -35,6 +36,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String _settlementBannerDeparture = '';
   String _settlementBannerDestination = '';
   int _settlementBannerMyFare = 0;
+  bool _showDropoffBanner = false;
+  int? _dropoffBannerReservationId;
+  String _dropoffBannerDeparture = '';
+  String _dropoffBannerRouteDestination = '';
+  String _dropoffBannerMyDestination = '';
+  bool _isRecordingDropoff = false;
   Timer? _notificationTimer;
 
   @override
@@ -104,11 +111,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
+  void _clearDropoffBanner() {
+    if (!mounted) return;
+    setState(() {
+      _showDropoffBanner = false;
+      _dropoffBannerReservationId = null;
+      _dropoffBannerDeparture = '';
+      _dropoffBannerRouteDestination = '';
+      _dropoffBannerMyDestination = '';
+    });
+  }
+
   Future<void> _loadSettlementBanner() async {
     try {
       final token = await AuthTokenStorage.getToken();
       if (token == null || token.isEmpty) {
         _clearSettlementBanner();
+        _clearDropoffBanner();
         return;
       }
 
@@ -124,13 +143,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         final notification = await SettlementApi.fetchSettlementNotification();
         if (notification['notification'] != true) {
           _clearSettlementBanner();
+          _clearDropoffBanner();
           return;
         }
         reservationId = _asInt(notification['reservation_id']);
         if (reservationId <= 0) {
           _clearSettlementBanner();
+          _clearDropoffBanner();
           return;
         }
+        _clearDropoffBanner();
+      } else if (activeMatch != null) {
+        await _loadDropoffBanner(activeMatch, reservationId);
+      } else {
+        _clearDropoffBanner();
       }
 
       final settlement = await SettlementApi.fetchSettlement(reservationId);
@@ -160,7 +186,209 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       });
     } catch (_) {
       _clearSettlementBanner();
+      _clearDropoffBanner();
     }
+  }
+
+  Future<void> _loadDropoffBanner(
+    Map<String, dynamic> activeMatch,
+    int reservationId,
+  ) async {
+    if (_isRecordingDropoff) return;
+
+    final isCreator = _asBool(activeMatch['is_creator']);
+    final dropoffCompleted = _asBool(activeMatch['my_dropoff_completed']);
+    if (isCreator || dropoffCompleted) {
+      _clearDropoffBanner();
+      return;
+    }
+
+    final status = await SettlementApi.fetchSettlementStatus(reservationId);
+    if (status['requested'] == true) {
+      _clearDropoffBanner();
+      return;
+    }
+
+    final settlement = await SettlementApi.fetchSettlement(reservationId);
+    final preview = calculateSettlement(
+      passengers: settlement.passengers,
+      totalFare: settlement.reservation.routeDistanceMeters > 0
+          ? settlement.reservation.routeDistanceMeters
+          : 1,
+      creatorId: settlement.reservation.creatorId,
+    );
+    final isFinalSettler =
+        preview.finalSettler?.id == settlement.currentUserId;
+    if (isFinalSettler) {
+      _clearDropoffBanner();
+      return;
+    }
+
+    final myDestination =
+        activeMatch['my_destination_location']?.toString().trim() ?? '';
+    SettlementPassenger? currentPassenger;
+    for (final passenger in settlement.passengers) {
+      if (passenger.id == settlement.currentUserId) {
+        currentPassenger = passenger;
+        break;
+      }
+    }
+    final passengerDestination =
+        currentPassenger?.destinationLocation.trim() ?? myDestination;
+
+    if (!mounted) return;
+    setState(() {
+      _showDropoffBanner = true;
+      _dropoffBannerReservationId = reservationId;
+      _dropoffBannerDeparture = settlement.reservation.departureLocation;
+      _dropoffBannerRouteDestination = settlement.reservation.destinationLocation;
+      _dropoffBannerMyDestination = passengerDestination.isNotEmpty
+          ? passengerDestination
+          : (_destination?.name ?? '내 하차지');
+    });
+  }
+
+  Future<void> _onDropoffBannerTap() async {
+    final reservationId = _dropoffBannerReservationId;
+    if (reservationId == null || reservationId <= 0 || _isRecordingDropoff) {
+      return;
+    }
+
+    final dropoff = await _resolveDropoffLocation(reservationId);
+    if (dropoff == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('하단에서 목적지(하차 위치)를 먼저 설정해 주세요.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isRecordingDropoff = true);
+    try {
+      if (_destination != null) {
+        await _syncMyDestinationIfNeeded(reservationId);
+      }
+
+      final result = await SettlementApi.recordDropoff(
+        reservationId: reservationId,
+        destinationLocation: dropoff.name,
+        destinationLat: dropoff.lat,
+        destinationLng: dropoff.lng,
+      );
+
+      if (!mounted) return;
+
+      if (result.success) {
+        setState(() => _showDropoffBanner = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.message)),
+        );
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isRecordingDropoff = false);
+    }
+  }
+
+  Widget _buildDropoffBanner() {
+    final routeLabel =
+        '$_dropoffBannerDeparture → $_dropoffBannerRouteDestination';
+    final dropoffLabel = _dropoffBannerMyDestination.isNotEmpty
+        ? _dropoffBannerMyDestination
+        : '내 하차지';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _isRecordingDropoff ? null : _onDropoffBannerTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F8FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AuthColors.bluePrimary, width: 1.5),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AuthColors.bluePrimary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: _isRecordingDropoff
+                    ? Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AuthColors.bluePrimary.withValues(alpha: 0.8),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.location_on_outlined,
+                        color: AuthColors.bluePrimary,
+                        size: 22,
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      routeLabel,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: AuthColors.grayText,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '하차하셨나요?',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AuthColors.blackText,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      '탭하면 하차 위치가 저장됩니다',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AuthColors.grayText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.touch_app_outlined,
+                color: AuthColors.bluePrimary,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _onSettlementBannerTap() async {
@@ -168,7 +396,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (reservationId == null || reservationId <= 0) return;
 
     try {
-      await _syncMyDestinationIfNeeded(reservationId);
+      final syncWarning = await _syncMyDestinationIfNeeded(reservationId);
 
       Map<String, dynamic> activeMatch;
       try {
@@ -186,6 +414,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       };
 
       if (!mounted) return;
+
+      if (syncWarning != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(syncWarning)),
+        );
+      }
+
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
           builder: (_) => _settlementBannerIsFinalDropoff
@@ -286,37 +521,81 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return Map<String, dynamic>.from(decoded);
   }
 
-  Future<void> _syncMyDestinationIfNeeded(int reservationId) async {
+  /// 홈 목적지 또는 매칭 시 저장된 하차지 좌표를 반환합니다.
+  Future<({String name, double lat, double lng})?> _resolveDropoffLocation(
+    int reservationId,
+  ) async {
+    final homeDestination = _destination;
+    if (homeDestination != null) {
+      return (
+        name: homeDestination.name,
+        lat: homeDestination.latitude,
+        lng: homeDestination.longitude,
+      );
+    }
+
+    try {
+      final match = await _fetchActiveMatchedReservation();
+      if (_asInt(match['id']) != reservationId) return null;
+
+      final lat = double.tryParse(match['my_destination_lat']?.toString() ?? '');
+      final lng = double.tryParse(match['my_destination_lng']?.toString() ?? '');
+      final name = match['my_destination_location']?.toString().trim() ?? '';
+      if (lat != null && lng != null) {
+        return (
+          name: name.isNotEmpty ? name : _dropoffBannerMyDestination,
+          lat: lat,
+          lng: lng,
+        );
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  /// 홈 화면에서 선택한 목적지를 매칭 참여자 정보에 반영합니다.
+  /// 이미 동일한 목적지가 저장돼 있으면 건너뜁니다.
+  /// 반환값: 경고 메시지(동기화 실패 등). null이면 성공 또는 생략.
+  Future<String?> _syncMyDestinationIfNeeded(int reservationId) async {
     final destination = _destination;
     if (destination == null) {
-      return;
+      return null;
     }
 
-    final token = await AuthTokenStorage.getToken();
-    if (token == null || token.isEmpty) return;
+    try {
+      final activeMatch = await _fetchActiveMatchedReservation();
+      final storedDestination =
+          activeMatch['my_destination_location']?.toString().trim() ?? '';
+      if (storedDestination.isNotEmpty && storedDestination == destination.name) {
+        return null;
+      }
+    } catch (_) {
+      // 진행 중 매칭이 없어도 목적지 동기화는 시도합니다.
+    }
 
-    final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
-    final response = await http.post(
-      Uri.parse('$baseUrl/api/bluetooth/proximity/$reservationId/confirm'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'destination_location': destination.name,
-        'destination_lat': destination.latitude,
-        'destination_lng': destination.longitude,
-      }),
+    final result = await ProximityMatchApi.confirm(
+      reservationId,
+      destinationLocation: destination.name,
+      destinationLat: destination.latitude,
+      destinationLng: destination.longitude,
     );
-    if (response.statusCode != 200) {
-      throw Exception('입력한 목적지를 매칭 정보에 반영하지 못했습니다. (${response.statusCode})');
+
+    if (result.success) {
+      return null;
     }
+
+    return result.message;
   }
 
   int _asInt(Object? value) {
     if (value is int) return value;
     if (value is num) return value.toInt();
     return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  bool _asBool(Object? value) {
+    if (value is bool) return value;
+    return value?.toString().toLowerCase() == 'true';
   }
 
   Widget _buildDragHandle() {
@@ -342,6 +621,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       padding: EdgeInsets.fromLTRB(24, 0, 24, bottomInset + 24),
       children: [
         _buildDragHandle(),
+        if (_showDropoffBanner) ...[
+          _buildDropoffBanner(),
+          const SizedBox(height: 12),
+        ],
         if (_showSettlementBanner) ...[
           _buildSettlementBanner(),
           const SizedBox(height: 20),

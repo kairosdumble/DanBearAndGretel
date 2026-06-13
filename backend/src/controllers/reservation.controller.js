@@ -174,6 +174,45 @@ async function putReservation(req, res) {
 }
 
 
+async function deleteReservation(req, res) {
+    try {
+        const reservationId = Number(req.params.id);
+        if (!Number.isInteger(reservationId) || reservationId <= 0) {
+            return res.status(400).json({ message: "예약 ID가 필요합니다." });
+        }
+
+        const result = await reservationService.deleteReservation(
+            reservationId,
+            req.user.id,
+        );
+
+        if (!result) {
+            return res.status(404).json({ message: "해당 예약을 찾을 수 없습니다." });
+        }
+        if (result.error === "NOT_FOUND") {
+            return res.status(404).json({ message: "해당 예약을 찾을 수 없습니다." });
+        }
+        if (result.error === "NOT_OWNER") {
+            return res.status(403).json({
+                message: "예약 생성자만 예약을 삭제할 수 있습니다.",
+            });
+        }
+        if (result.error === "NOT_DELETABLE") {
+            return res.status(409).json({
+                message: "진행 중이거나 완료된 예약은 삭제할 수 없습니다.",
+            });
+        }
+
+        return res.status(200).json({ message: "예약이 삭제되었습니다.", id: result.id });
+    } catch (error) {
+        return res.status(500).json({
+            message: "예약 삭제 중 오류가 발생했습니다.",
+            error: error.message,
+        });
+    }
+}
+
+
 module.exports = {
     createReservation,
     getReservationById,
@@ -181,4 +220,5 @@ module.exports = {
     getActiveMatchedReservation,
     getAllReservations,
     putReservation,
+    deleteReservation,
 };

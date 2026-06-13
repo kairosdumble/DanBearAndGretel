@@ -10,43 +10,40 @@ class SettlementChatLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFE0E0E0)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onIconTap,
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.all(4),
-                  child: Icon(
-                    Icons.chat_bubble_outline,
-                    size: 22,
-                    color: AuthColors.grayText,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              '해당 채팅방으로 이동하기',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+      child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onIconTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFE0E0E0)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(
+                Icons.chat_bubble_outline,
+                size: 22,
                 color: AuthColors.grayText,
               ),
-            ),
-          ],
+              SizedBox(width: 8),
+              Text(
+                '해당 채팅방으로 이동하기',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AuthColors.grayText,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    ),
     );
   }
 }
