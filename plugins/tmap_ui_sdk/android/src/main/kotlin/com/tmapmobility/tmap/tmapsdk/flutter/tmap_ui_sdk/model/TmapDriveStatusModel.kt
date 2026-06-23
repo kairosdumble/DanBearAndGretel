@@ -1,4 +1,4 @@
-package android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model
+package com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model
 
 enum class TmapDriveStatusModel(val text: String) {
     NotDriving("notDriving"),

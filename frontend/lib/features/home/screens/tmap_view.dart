@@ -1,13 +1,21 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_navi_sdk/flutter_navi_sdk.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-const _tMapApiKey = 'TXChrUJFjq9O4TdlVdE5U5s9GI3f8Wlt6kHC4kAP'; //키
+import 'place.dart';
 
 class TMapView extends StatefulWidget {
-  const TMapView({super.key});
+  const TMapView({super.key, this.departure, this.destination});
+
+  final Place? departure;
+  final Place? destination;
 
   @override
   State<TMapView> createState() => _TMapViewState();
@@ -20,6 +28,9 @@ class _TMapViewState extends State<TMapView> {
   bool _isSdkInitialized = false;
   String _statusMessage = 'Preparing T map...';
   Position? _currentPosition;
+  String _appliedMarkerKey = 'none';
+  int _markerConfigSerial = 0;
+  final Map<int, String> _markerIconPaths = {};
 
   bool get _isSupportedPlatform {
     if (kIsWeb) {
@@ -30,10 +41,90 @@ class _TMapViewState extends State<TMapView> {
         defaultTargetPlatform == TargetPlatform.iOS;
   }
 
+  String get _mapDataKey {
+    final position = _currentPosition;
+
+    return [
+      if (position != null)
+        'gps:${position.latitude.toStringAsFixed(6)},${position.longitude.toStringAsFixed(6)}',
+    ].join('|');
+  }
+
+  String get _requestedMarkerKey {
+    final departure = widget.departure;
+    final destination = widget.destination;
+
+    return [
+      if (departure != null)
+        'dep:${departure.latitude.toStringAsFixed(6)},${departure.longitude.toStringAsFixed(6)}',
+      if (destination != null)
+        'dest:${destination.latitude.toStringAsFixed(6)},${destination.longitude.toStringAsFixed(6)}',
+    ].join('|').ifEmpty('none');
+  }
+
+  RouteRequestData _routeRequestData() {
+    return RouteRequestData();
+  }
+
+  String _mapSummaryText() {
+    final departure = widget.departure;
+    final destination = widget.destination;
+
+    if (departure != null && destination != null) {
+      return '${departure.name} -> ${destination.name}';
+    }
+
+    if (departure != null) {
+      return '출발지 ${departure.name}';
+    }
+
+    if (destination != null) {
+      return '목적지 ${destination.name}';
+    }
+
+    return 'GPS ${_currentPosition!.latitude.toStringAsFixed(6)}, '
+        '${_currentPosition!.longitude.toStringAsFixed(6)}';
+  }
+
   @override
   void initState() {
     super.initState();
     _initialize();
+  }
+
+  @override
+  void didUpdateWidget(TMapView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (_isSdkInitialized && _requestedMarkerKey != _appliedMarkerKey) {
+      unawaited(
+        _configureSelectedPlaceMarkers(
+          centerPlace: _changedPlaceFrom(oldWidget),
+        ),
+      );
+    }
+  }
+
+  bool _isSamePlace(Place? a, Place? b) {
+    if (identical(a, b)) {
+      return true;
+    }
+    if (a == null || b == null) {
+      return false;
+    }
+    return a.id == b.id &&
+        a.latitude == b.latitude &&
+        a.longitude == b.longitude;
+  }
+
+  Place? _changedPlaceFrom(TMapView oldWidget) {
+    if (!_isSamePlace(widget.destination, oldWidget.destination)) {
+      return widget.destination;
+    }
+    if (!_isSamePlace(widget.departure, oldWidget.departure)) {
+      return widget.departure;
+    }
+    return null;
   }
 
   Future<void> _refreshMap() async {
@@ -49,13 +140,11 @@ class _TMapViewState extends State<TMapView> {
     try {
       await _loadCurrentPosition();
     } finally {
-      if (!mounted) {
-        return;
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
       }
-
-      setState(() {
-        _isRefreshing = false;
-      });
     }
   }
 
@@ -100,11 +189,17 @@ class _TMapViewState extends State<TMapView> {
         _statusMessage = 'Initializing T map SDK...';
       });
 
+      final tMapApiKey = dotenv.env['TMAP_API_KEY'] ?? '';
+      if (tMapApiKey.isEmpty) {
+        setState(() {
+          _isInitializing = false;
+          _statusMessage = 'TMAP_API_KEY is not configured.';
+        });
+        return;
+      }
+
       final result = await TmapUISDKManager().initSDK(
-        AuthData(
-          clientApiKey: _tMapApiKey,
-          isAvailableInBackground: true,
-        ),
+        AuthData(clientApiKey: tMapApiKey, isAvailableInBackground: true),
       );
 
       if (!mounted) {
@@ -112,8 +207,13 @@ class _TMapViewState extends State<TMapView> {
       }
 
       if (result == InitResult.granted) {
+        _isSdkInitialized = true;
+        await _configureSelectedPlaceMarkers(updateState: false);
+        if (!mounted) {
+          return;
+        }
+
         setState(() {
-          _isSdkInitialized = true;
           _isInitializing = false;
           _isReady = true;
           _statusMessage = 'T map ready';
@@ -123,7 +223,8 @@ class _TMapViewState extends State<TMapView> {
 
       setState(() {
         _isInitializing = false;
-        _statusMessage = 'T map initialization failed: ${result?.text ?? "unknown"}';
+        _statusMessage =
+            'T map initialization failed: ${result?.text ?? "unknown"}';
       });
     } catch (error) {
       if (!mounted) {
@@ -137,11 +238,132 @@ class _TMapViewState extends State<TMapView> {
     }
   }
 
+  Future<void> _configureSelectedPlaceMarkers({
+    bool updateState = true,
+    Place? centerPlace,
+  }) async {
+    final serial = ++_markerConfigSerial;
+    final markerKey = _requestedMarkerKey;
+    final markers = <UISDKMarker>[];
+
+    final departure = widget.departure;
+    if (departure != null) {
+      markers.add(
+        UISDKMarker(
+          markerId: 'departure',
+          imageName: await _markerIconPath(const Color(0xFF2563EB)),
+          markerType: MarkerType.point,
+          markerPoint: [
+            UISDKMarkerPoint(
+              latitude: departure.latitude,
+              longitude: departure.longitude,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final destination = widget.destination;
+    if (destination != null) {
+      markers.add(
+        UISDKMarker(
+          markerId: 'destination',
+          imageName: await _markerIconPath(const Color(0xFFDC2626)),
+          markerType: MarkerType.point,
+          markerPoint: [
+            UISDKMarkerPoint(
+              latitude: destination.latitude,
+              longitude: destination.longitude,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final manager = TmapUISDKManager();
+    await manager.configMarker(UISDKMarkerConfig(markers: markers));
+
+    final selectedCenter = centerPlace ?? destination ?? departure;
+    if (selectedCenter != null) {
+      await manager.setMapCenter(
+        selectedCenter.latitude,
+        selectedCenter.longitude,
+      );
+    } else {
+      final currentPosition = _currentPosition;
+      if (currentPosition != null) {
+        await manager.setMapCenter(
+          currentPosition.latitude,
+          currentPosition.longitude,
+          animated: false,
+        );
+      }
+    }
+
+    if (!mounted || serial != _markerConfigSerial) {
+      return;
+    }
+
+    if (updateState) {
+      setState(() {
+        _appliedMarkerKey = markerKey;
+      });
+    } else {
+      _appliedMarkerKey = markerKey;
+    }
+  }
+
+  Future<String> _markerIconPath(Color color) async {
+    final colorKey = color.toARGB32();
+    final cachedPath = _markerIconPaths[colorKey];
+    if (cachedPath != null) {
+      return cachedPath;
+    }
+
+    final file = File(
+      '${Directory.systemTemp.path}${Platform.pathSeparator}dangretel_tmap_marker_$colorKey.png',
+    );
+    if (!await file.exists()) {
+      await file.writeAsBytes(await _createMarkerIconBytes(color), flush: true);
+    }
+
+    _markerIconPaths[colorKey] = file.path;
+    return file.path;
+  }
+
+  Future<Uint8List> _createMarkerIconBytes(Color color) async {
+    const width = 96;
+    const height = 112;
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    final paint = ui.Paint()..color = color;
+    final shadow = ui.Paint()..color = const Color(0x33000000);
+
+    canvas.drawCircle(const ui.Offset(50, 46), 30, shadow);
+    canvas.drawCircle(const ui.Offset(48, 42), 30, paint);
+
+    final tail = ui.Path()
+      ..moveTo(48, 100)
+      ..lineTo(31, 63)
+      ..lineTo(65, 63)
+      ..close();
+    canvas.drawPath(tail, paint);
+
+    canvas.drawCircle(
+      const ui.Offset(48, 42),
+      11,
+      ui.Paint()..color = Colors.white,
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(width, height);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    return bytes!.buffer.asUint8List();
+  }
+
   Future<void> _loadCurrentPosition() async {
     final currentPosition = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-      ),
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     );
 
     if (!mounted) {
@@ -186,19 +408,9 @@ class _TMapViewState extends State<TMapView> {
 
     return Stack(
       children: [
-        TmapViewWidget(
-          key: ValueKey<String>(
-            _currentPosition == null
-                ? 'tmap-loading'
-                : '${_currentPosition!.latitude.toStringAsFixed(6)},${_currentPosition!.longitude.toStringAsFixed(6)}',
-          ),
-          data: RouteRequestData(
-            source: RoutePoint(
-              latitude: _currentPosition!.latitude,
-              longitude: _currentPosition!.longitude,
-              name: 'Current Location',
-            ),
-          ),
+        KeyedSubtree(
+          key: ValueKey<String>(_mapDataKey),
+          child: TmapViewWidget(data: _routeRequestData()),
         ),
         Positioned(
           top: 12,
@@ -214,9 +426,7 @@ class _TMapViewState extends State<TMapView> {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFFD1D5DB),
-                  ),
+                  border: Border.all(color: const Color(0xFFD1D5DB)),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x14000000),
@@ -242,7 +452,9 @@ class _TMapViewState extends State<TMapView> {
             ),
           ),
         ),
-        if (_currentPosition != null)
+        if (_currentPosition != null ||
+            widget.departure != null ||
+            widget.destination != null)
           Positioned(
             left: 12,
             right: 12,
@@ -258,8 +470,7 @@ class _TMapViewState extends State<TMapView> {
                   vertical: 10,
                 ),
                 child: Text(
-                  'GPS ${_currentPosition!.latitude.toStringAsFixed(6)}, '
-                  '${_currentPosition!.longitude.toStringAsFixed(6)}',
+                  _mapSummaryText(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -306,11 +517,7 @@ class _MessageView extends StatelessWidget {
               ),
             )
           else
-            Icon(
-              icon,
-              size: 44,
-              color: const Color(0xFF3056A0),
-            ),
+            Icon(icon, size: 44, color: const Color(0xFF3056A0)),
           const SizedBox(height: 12),
           Text(
             title,
@@ -325,13 +532,14 @@ class _MessageView extends StatelessWidget {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF6B7280),
-            ),
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
           ),
         ],
       ),
     );
   }
+}
+
+extension _StringFallback on String {
+  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }

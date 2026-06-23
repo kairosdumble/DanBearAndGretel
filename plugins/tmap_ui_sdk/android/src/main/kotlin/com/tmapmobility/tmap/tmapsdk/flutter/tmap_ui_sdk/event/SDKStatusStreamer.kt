@@ -1,7 +1,7 @@
-package android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event
+package com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event
 
 import com.google.gson.Gson
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.TmapSDKStatusMsgModel
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.TmapSDKStatusMsgModel
 import io.flutter.plugin.common.EventChannel
 
 class SDKStatusStreamer: EventChannel.StreamHandler {

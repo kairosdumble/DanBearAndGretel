@@ -1,10 +1,16 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const reservationController = require('../controllers/reservationController');
+const reservationController = require("../controllers/reservation.controller");
+const { authenticate } = require("../middleware/auth.middleware");
 
-// 사용자가 POST 방식으로 /api/reservations 주소에 접근하면 실행됨
-router.post('/', reservationController.createReservation);
+router.use(authenticate);
 
-router.get('/', reservationController.getReservation);
+router.post("/create", reservationController.createReservation); // 새 예약 생성
+router.get("/all", reservationController.getAllReservations); // 모든 DB 예약들 정보 받아오기
+router.get("/active-match", reservationController.getActiveMatchedReservation); 
+router.get("/:id/settlement", reservationController.getSettlementDetails);
+router.delete("/:id", reservationController.deleteReservation);
+router.get("/:id", reservationController.getReservationById);
+router.put("/put/:id", reservationController.putReservation); // 
 
 module.exports = router;

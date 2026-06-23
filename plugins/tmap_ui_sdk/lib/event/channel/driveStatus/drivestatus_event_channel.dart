@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 
-import '/event/data/driveStatus/tmap_drivestatus.dart';
+import 'package:tmap_ui_sdk/event/data/driveStatus/tmap_drivestatus.dart';
 
 class TmapDriveStatusEvent {
   static const String CHANNEL_NAME = 'com.tmapmobility.tmap.tmapsdk.flutter.tmapuisdk/event.driveStatus';

@@ -1,18 +1,18 @@
 package com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk
 
 import android.app.Activity
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveGuideStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveStatusStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.MarkerStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.SDKStatusStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.CarOptionModel
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.ConfigMarkerModel
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.utils.PreferenceUtils
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.TmapSDKStatus
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.TmapSDKStatusMsgModel
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveGuideStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveStatusStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.MarkerStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.SDKStatusStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.CarOptionModel
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.ConfigMarkerModel
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.utils.PreferenceUtils
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.TmapSDKStatus
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.TmapSDKStatusMsgModel
 import com.tmapmobility.tmap.tmapsdk.ui.data.CarOption
 import com.tmapmobility.tmap.tmapsdk.ui.util.TmapUISDK
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.TmapUiSdkFactory
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.TmapUiSdkFactory
 import com.tmapmobility.tmap.tmapsdk.ui.data.MapSetting
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -106,6 +106,19 @@ class TmapUiSdkPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         if (ConfigMarkerModel.model == null) {
           result.success("false")
         } else {
+          TmapUiSdkView.applyCurrentMarkerConfig()
+          result.success("true")
+        }
+      }
+      "setMapCenter" -> {
+        val json = call.argument<String>("args")?.let { JSONObject(it) }
+        val latitude = json?.optDouble("latitude")
+        val longitude = json?.optDouble("longitude")
+        val animated = json?.optBoolean("animated", true) ?: true
+        if (latitude == null || longitude == null) {
+          result.success("false")
+        } else {
+          TmapUiSdkView.setCurrentMapCenter(latitude, longitude, animated)
           result.success("true")
         }
       }

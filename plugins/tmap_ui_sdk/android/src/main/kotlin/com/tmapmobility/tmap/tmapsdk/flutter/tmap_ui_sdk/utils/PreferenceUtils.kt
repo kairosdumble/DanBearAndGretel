@@ -1,4 +1,4 @@
-package android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.utils
+package com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.utils
 
 import android.app.Activity
 import android.content.Context

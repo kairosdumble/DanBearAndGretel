@@ -12,6 +12,7 @@ enum PluginMethod: String {
     case stopDriving = "stopDriving"
     case toNextViaPointRequest = "toNextViaPointRequest"
     case configMarker = "configMarker"
+    case setMapCenter = "setMapCenter"
     case clearContinueDriveInfo = "clearContinueDriveInfo"
     case getMaxVolume = "getMaxVolume"
     case getVolume = "getVolume"
@@ -114,6 +115,8 @@ public class TmapUiSdkPlugin: NSObject, FlutterPlugin {
                 } else {
                     result(String(false))
                 }
+            case .setMapCenter:
+                result(String(false))
             case .getMaxVolume:
                 getMaxVolume(result: result)
             case .getVolume:

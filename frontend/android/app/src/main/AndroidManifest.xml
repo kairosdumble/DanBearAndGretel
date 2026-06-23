@@ -3,15 +3,22 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
     <application
-        android:label="frontend"
+        android:label="단곰이와 그레텔"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
         tools:replace="android:label">
         <meta-data
             android:name="com.tmap.apikey"
-            android:value="TXChrUJFjq9O4TdlVdE5U5s9GI3f8Wlt6kHC4kAP" />
+            android:value="${tmapApiKey}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,6 +1,7 @@
-const verificationService = require("../services/emailVerification.service");
+const verificationService = require("../services/email_verification.service");
 const pool = require("../db/pool");
 const bcrypt = require("bcrypt"); // 비밀번호 암호화용
+const jwt = require("jsonwebtoken");
 
 // 이메일 전송 컨트롤러
 async function sendCode(req, res) { // req: 요청 객체, res:응답 객체
@@ -102,13 +103,22 @@ async function login(req, res) {
       return res.status(401).json({ message: "비밀번호가 일치하지 않습니다." });
     }
 
+    const secret = process.env.JWT_SECRET_KEY;
+    if (!secret) {
+      console.error("login: JWT_SECRET_KEY 미설정");
+      return res.status(500).json({ message: "서버 인증 설정 오류" });
+    }
+    const expiresIn = Number(process.env.JWT_EXPIRES_IN) || 3600;
+    const token = jwt.sign({ sub: String(user.id) }, secret, { expiresIn });
+
     res.status(200).json({
       message: "로그인 성공!",
-      user: { 
-        id: user.id, 
-        name: user.name, 
-        email: user.email 
-      }
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
     });
   } catch (error) {
     console.error("로그인 에러:", error);

@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 
-import '/event/data/markerStatus/marker_status.dart';
+import 'package:tmap_ui_sdk/event/data/markerStatus/marker_status.dart';
 
 class UISDKMarkerStatusEvent {
   static const String CHANNEL_NAME = 'com.tmapmobility.tmap.tmapsdk.flutter.tmapuisdk/event.markerStatus';

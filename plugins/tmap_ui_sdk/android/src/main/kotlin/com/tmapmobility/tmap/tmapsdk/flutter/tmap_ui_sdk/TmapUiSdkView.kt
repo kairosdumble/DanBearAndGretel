@@ -1,4 +1,4 @@
-package android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk
+package com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk
 
 import android.content.Context
 import android.content.ContextWrapper
@@ -20,13 +20,13 @@ import com.skt.tmap.vsm.map.marker.MarkerImage
 import com.skt.tmap.vsm.map.marker.VSMMarkerBase
 import com.skt.tmap.vsm.map.marker.VSMMarkerPoint
 import com.skt.tmap.vsm.map.marker.VSMMarkerPolyline
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveGuideStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveStatusStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.MarkerStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.SDKStatusStreamer
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.*
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.drive_guide.TmapDriveGuideModel
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.utils.PreferenceUtils
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveGuideStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.DriveStatusStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.MarkerStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event.SDKStatusStreamer
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.*
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.drive_guide.TmapDriveGuideModel
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.utils.PreferenceUtils
 import android.util.Log
 import android.widget.Toast
 import com.tmapmobility.tmap.tmapsdk.ui.data.CarOption
@@ -189,10 +189,30 @@ class FlutterDrivingStatusCallback(activity: FragmentActivity?): TmapUISDK.Drivi
 
 }
 
+data class PendingMapCenter(
+  val latitude: Double,
+  val longitude: Double,
+  val animated: Boolean,
+)
+
 class TmapUiSdkView(
   context: Context,
   creationParams: Map<*, *>?,
 ) : PlatformView {
+  companion object {
+    private var currentView: TmapUiSdkView? = null
+    private var pendingMapCenter: PendingMapCenter? = null
+
+    fun applyCurrentMarkerConfig() {
+      currentView?.setMarker()
+    }
+
+    fun setCurrentMapCenter(latitude: Double, longitude: Double, animated: Boolean) {
+      pendingMapCenter = PendingMapCenter(latitude, longitude, animated)
+      currentView?.applyPendingMapCenter()
+    }
+  }
+
   private val TAG = "TmapUiSdkView"
   private val _context: Context
   private val navigationFragment: NavigationFragment
@@ -201,9 +221,11 @@ class TmapUiSdkView(
   private val navigationRequestModel: NavigationRequestModel?
   private var routeRequested: Boolean = false
   private var getViewCalledCount = 0
+  private val selectedMarkerIds = mutableSetOf<String>()
 
   private var driveStatusChangedListener : FlutterDrivingStatusCallback? = null
   init {
+    currentView = this
     _context = context
     viewId = View.generateViewId()
     val json = creationParams?.let { JSONObject(it) }
@@ -277,7 +299,7 @@ class TmapUiSdkView(
         문제의 exception "The Android view returned from PlatformView#getView() was already added to a parent view."은 flutter 내부의 initializePlatformViewIfNeeded 함수에서 벌어짐
 
         call stack
-          getView:251, TmapUiSdkView (android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk)
+          getView:251, TmapUiSdkView (com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk)
           initializePlatformViewIfNeeded:1051, PlatformViewsController (io.flutter.plugin.platform)
           onDisplayPlatformView:1115, PlatformViewsController (io.flutter.plugin.platform)
           onDisplayPlatformView:1398, FlutterJNI (io.flutter.embedding.engine)
@@ -372,6 +394,7 @@ class TmapUiSdkView(
           }
         }
         setMarker()
+        applyPendingMapCenter()
       }
       Log.d(TAG,"getView() Ends -----------")
     }
@@ -379,6 +402,9 @@ class TmapUiSdkView(
   }
 
   override fun dispose() {
+    if (currentView == this) {
+      currentView = null
+    }
     // 붙어있던 fragment를 삭제한다.
     val activity = _context.getFragmentActivity()
     val fm: FragmentManager? = activity?.supportFragmentManager
@@ -403,14 +429,27 @@ class TmapUiSdkView(
     return null
   }
 
+  private fun applyPendingMapCenter() {
+    val center = pendingMapCenter ?: return
+    val mapView = navigationFragment.getMapView() ?: return
+    mapView.setMapCenter(center.longitude, center.latitude, center.animated)
+  }
+
   private fun setMarker() {
     val makerManager = navigationFragment.getMapView()?.markerManager
     val configMarker: ConfigMarkerModel? = ConfigMarkerModel.model
+    if (makerManager != null) {
+      selectedMarkerIds.forEach { makerManager.removeMarker(it) }
+      selectedMarkerIds.clear()
+    }
     if (makerManager != null && configMarker != null) {
       val markers = configMarker.markers
       if (markers != null && markers.isNotEmpty()) {
         for (marker in markers) {
           val customRID = marker.markerId
+          if (customRID != null) {
+            selectedMarkerIds.add(customRID)
+          }
           val filePath = marker.imageName
           val markIcon = BitmapFactory.decodeFile(filePath)
           if (marker.markerType == MarkerType.POINT) {

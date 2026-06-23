@@ -1,7 +1,7 @@
-package android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event
+package com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.event
 
 import com.google.gson.Gson
-import android.src.main.kotlin.com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.MarkerStatusModel
+import com.tmapmobility.tmap.tmapsdk.flutter.tmap_ui_sdk.model.MarkerStatusModel
 import io.flutter.plugin.common.EventChannel
 
 class MarkerStreamer: EventChannel.StreamHandler {
